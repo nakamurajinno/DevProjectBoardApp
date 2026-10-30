@@ -1,26 +1,35 @@
 @import "tailwindcss";
 
+/* UI設計書のモックに合わせた配色 (ライトテーマのみ) */
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #1f2937;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans:
+    var(--font-geist-sans), "Hiragino Kaku Gothic ProN", "Hiragino Sans",
+    "Noto Sans JP", Meiryo, sans-serif;
   --font-mono: var(--font-geist-mono);
-}
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-header: #84cbeb;
+  --color-logo: #5bc4f1;
+  --color-primary: #215f9a;
+  --color-primary-hover: #1a4d7e;
+  --color-row-active: #ebf3fb;
+  --color-panel-title: #dceaf7;
+  --color-tab-active: #c5e4f3;
+  --color-tab-border: #b9dff0;
+  --color-readonly: #f2f2f2;
+  --color-cancel: #d9d9d9;
+  --color-status-todo: #a6a6a6;
+  --color-status-doing: #a9cbec;
+  --color-status-done: #a9d18e;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
 }
