@@ -13,6 +13,7 @@ import type { ActivityLogRepository, ProjectRepository } from "./types";
 
 type ProjectRow =
   Database["public"]["Views"]["projects_with_progress"]["Row"];
+type ActivityLogRow = Database["public"]["Tables"]["activity_logs"]["Row"];
 
 // id 列は uuid 型なので、形式外の値で問い合わせると DB エラーになる。事前に弾く。
 const UUID_RE =
@@ -25,6 +26,10 @@ function toProject(row: ProjectRow): ProjectWithProgress {
     actual_hours: Number(row.actual_hours),
     links: Array.isArray(row.links) ? (row.links as ProjectLink[]) : [],
   };
+}
+
+function toActivityLog(row: ActivityLogRow): ActivityLog {
+  return { ...row, hours: Number(row.hours) };
 }
 
 function toRow(input: ProjectInput) {
@@ -106,8 +111,49 @@ export const supabaseActivityLogRepository: ActivityLogRepository = {
       .order("worked_on", { ascending: false })
       .order("created_at", { ascending: false });
     if (error) throw error;
-    return data.map(
-      (row): ActivityLog => ({ ...row, hours: Number(row.hours) }),
-    );
+    return data.map(toActivityLog);
+  },
+
+  async create(input) {
+    if (!UUID_RE.test(input.project_id))
+      throw new Error(`Project not found: ${input.project_id}`);
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("activity_logs")
+      .insert(input)
+      .select("*")
+      .single();
+    if (error) throw error;
+    return toActivityLog(data);
+  },
+
+  async update(id, { project_id, ...values }) {
+    if (!UUID_RE.test(id) || !UUID_RE.test(project_id))
+      throw new Error(`Activity log not found: ${id}`);
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("activity_logs")
+      .update(values)
+      .eq("id", id)
+      .eq("project_id", project_id)
+      .select("*")
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) throw new Error(`Activity log not found: ${id}`);
+    return toActivityLog(data);
+  },
+  async delete(id, projectId) {
+    if (!UUID_RE.test(id) || !UUID_RE.test(projectId))
+      throw new Error(`Activity log not found: ${id}`);
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("activity_logs")
+      .delete()
+      .eq("id", id)
+      .eq("project_id", projectId)
+      .select("id")
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) throw new Error(`Activity log not found: ${id}`);
   },
 };

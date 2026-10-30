@@ -1,5 +1,6 @@
 import type {
   ActivityLog,
+  ActivityLogInput,
   ProjectInput,
   ProjectWithProgress,
 } from "@/types";
@@ -15,4 +16,8 @@ export interface ProjectRepository {
 
 export interface ActivityLogRepository {
   listByProject(projectId: string): Promise<ActivityLog[]>;
+  create(input: ActivityLogInput): Promise<ActivityLog>;
+  // project_id は所属確認にのみ使い、別プロジェクトへの付け替えはしない
+  update(id: string, input: ActivityLogInput): Promise<ActivityLog>;
+  delete(id: string, projectId: string): Promise<void>;
 }

@@ -1,6 +1,7 @@
 import { Plus } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
+import { DetailTabsReset } from "@/components/board/DetailTabs";
 import { Header } from "@/components/board/Header";
 import {
   ProjectTable,
@@ -31,6 +32,10 @@ export default function BoardLayout({ children }: LayoutProps<"/">) {
         </div>
       </main>
       {children}
+      {/* usePathname は実行時にしか決まらないため Suspense で囲む (何も描画しないので fallback 不要) */}
+      <Suspense>
+        <DetailTabsReset />
+      </Suspense>
     </>
   );
 }

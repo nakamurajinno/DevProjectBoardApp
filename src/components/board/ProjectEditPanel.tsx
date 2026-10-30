@@ -1,40 +1,64 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useTransition, type ReactNode } from "react";
+import { useState, useTransition } from "react";
 import { updateProject } from "@/app/actions/projects";
 import { Button, Field, fullInputClass, inputClass } from "@/components/ui/form";
 import { CATEGORY_OPTIONS, STATUS_OPTIONS } from "@/lib/constants";
 import type { ProjectFieldErrors } from "@/lib/validation/project";
-import type { ProjectWithProgress } from "@/types";
+import type { ActivityLog, ProjectWithProgress } from "@/types";
+import { ActivityLogList } from "./ActivityLogList";
 import { DetailTabs } from "./DetailTabs";
 import { formatHours } from "./HoursProgress";
 import { LinksEditor, type LinkDraft } from "./LinksEditor";
 
 const FORM_ID = "project-edit-form";
 
+// 編集モードに入った時点の値。Cancel ではこの値に戻してから参照画面へ遷移する。
+function initialDraft(project: ProjectWithProgress, logs: ActivityLog[]) {
+  return {
+    values: {
+      status: project.status,
+      name: project.name,
+      summary: project.summary,
+      category: project.category,
+      planned_hours: String(project.planned_hours),
+      tech_stack: project.tech_stack,
+      scope_step1: project.scope_step1,
+      scope_step2: project.scope_step2,
+    },
+    links: project.links.map(
+      ({ id, label, url }): LinkDraft => ({ key: id, label, url }),
+    ),
+    logs,
+  };
+}
+
+// cacheComponents では参照画面へ戻ってもこの画面は <Activity> で state ごと保持される。
+// Cancel 時に明示的に元の値へ戻さないと、次に Edit を開いたとき破棄したはずの入力が残ってしまう。
 export function ProjectEditPanel({
   project,
-  logs,
+  logs: initialLogs,
 }: {
   project: ProjectWithProgress;
-  logs: ReactNode;
+  logs: ActivityLog[];
 }) {
-  const [values, setValues] = useState({
-    status: project.status,
-    name: project.name,
-    summary: project.summary,
-    category: project.category,
-    planned_hours: String(project.planned_hours),
-    tech_stack: project.tech_stack,
-    scope_step1: project.scope_step1,
-    scope_step2: project.scope_step2,
-  });
-  const [links, setLinks] = useState<LinkDraft[]>(() =>
-    project.links.map(({ id, label, url }) => ({ key: id, label, url })),
-  );
+  const [initial] = useState(() => initialDraft(project, initialLogs));
+  const [values, setValues] = useState(initial.values);
+  const [links, setLinks] = useState<LinkDraft[]>(initial.links);
+  // 活動ログの編集・削除は Save まで下書きとして保持する
+  const [logs, setLogs] = useState(initial.logs);
   const [errors, setErrors] = useState<ProjectFieldErrors>({});
+  const [message, setMessage] = useState<string>();
   const [pending, startTransition] = useTransition();
+
+  const reset = () => {
+    setValues(initial.values);
+    setLinks(initial.links);
+    setLogs(initial.logs);
+    setErrors({});
+    setMessage(undefined);
+  };
 
   const set =
     (key: keyof typeof values) =>
@@ -44,12 +68,31 @@ export function ProjectEditPanel({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
+    setMessage(undefined);
+    const ids = new Set(logs.map((log) => log.id));
     startTransition(async () => {
-      const result = await updateProject(project.id, {
-        ...values,
-        links: links.map(({ label, url }) => ({ label, url })),
-      });
-      if (result?.errors) setErrors(result.errors);
+      const result = await updateProject(
+        project.id,
+        {
+          ...values,
+          links: links.map(({ label, url }) => ({ label, url })),
+        },
+        {
+          updated: logs
+            .filter((log) => !initial.logs.includes(log))
+            .map(({ id, project_id, worked_on, hours, content }) => ({
+              id,
+              input: { project_id, worked_on, hours, content },
+            })),
+          deleted: initial.logs
+            .filter((log) => !ids.has(log.id))
+            .map((log) => log.id),
+        },
+      );
+      if (result) {
+        setErrors(result.errors);
+        setMessage(result.message);
+      }
     });
   };
 
@@ -160,15 +203,29 @@ export function ProjectEditPanel({
 
   return (
     <DetailTabs
+      projectId={project.id}
       info={info}
-      logs={logs}
+      logs={
+        <ActivityLogList
+          logs={logs}
+          onChange={(log) =>
+            setLogs((prev) => prev.map((l) => (l.id === log.id ? log : l)))
+          }
+          onDelete={(log) =>
+            setLogs((prev) => prev.filter((l) => l.id !== log.id))
+          }
+        />
+      }
       footer={
         <div className="flex items-center justify-end gap-3">
-          {Object.keys(errors).length > 0 && (
-            <p className="mr-auto text-xs text-red-600">入力内容を確認してください</p>
+          {(message || Object.keys(errors).length > 0) && (
+            <p className="mr-auto text-xs text-red-600">
+              {message ?? "入力内容を確認してください"}
+            </p>
           )}
           <Link
             href={`/projects/${project.id}`}
+            onClick={reset}
             className="inline-flex min-w-28 items-center justify-center rounded-md bg-cancel px-4 py-1.5 text-sm hover:bg-gray-300"
           >
             Cancel

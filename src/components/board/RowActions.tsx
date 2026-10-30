@@ -5,16 +5,20 @@ import Link from "next/link";
 import { useCallback, useRef, useState, useTransition } from "react";
 import { deleteProject } from "@/app/actions/projects";
 import { Menu, menuItemClass, Tooltip } from "@/components/ui/Floating";
+import { DialogModal } from "@/components/ui/Overlay";
 import type { Project } from "@/types";
+import { ActivityLogForm } from "./ActivityLogForm";
 
 const circleButton =
   "grid size-9 place-items-center rounded-full border-2 border-sky-300 bg-row-active text-gray-800 hover:bg-sky-100";
 
 export function RowActions({ project }: { project: Pick<Project, "id" | "name"> }) {
   const [open, setOpen] = useState(false);
+  const [logOpen, setLogOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const triggerRef = useRef<HTMLButtonElement>(null);
   const close = useCallback(() => setOpen(false), []);
+  const closeLog = useCallback(() => setLogOpen(false), []);
 
   const handleDelete = () => {
     setOpen(false);
@@ -30,12 +34,12 @@ export function RowActions({ project }: { project: Pick<Project, "id" | "name"> 
       }`}
     >
       <Tooltip content="活動ログ入力">
-        {/* TODO: 活動ログ入力画面の作成後に遷移させる */}
         <button
           type="button"
           className={circleButton}
           aria-label={`${project.name}の活動ログ入力`}
-          onClick={() => {}}
+          aria-haspopup="dialog"
+          onClick={() => setLogOpen(true)}
         >
           <FilePenLine className="size-4" aria-hidden />
         </button>
@@ -73,6 +77,11 @@ export function RowActions({ project }: { project: Pick<Project, "id" | "name"> 
             削除
           </button>
         </Menu>
+      )}
+      {logOpen && (
+        <DialogModal title={`活動ログ入力 - ${project.name}`} onClose={closeLog}>
+          <ActivityLogForm projectId={project.id} onCancel={closeLog} onSaved={closeLog} />
+        </DialogModal>
       )}
     </div>
   );

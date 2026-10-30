@@ -135,7 +135,40 @@ export const mockActivityLogRepository: ActivityLogRepository = {
     return structuredClone(
       store.logs
         .filter((log) => log.project_id === projectId)
-        .sort((a, b) => b.worked_on.localeCompare(a.worked_on)),
+        .sort(
+          (a, b) =>
+            b.worked_on.localeCompare(a.worked_on) ||
+            b.created_at.localeCompare(a.created_at),
+        ),
     );
+  },
+
+  async create(input) {
+    if (!store.projects.some((p) => p.id === input.project_id))
+      throw new Error(`Project not found: ${input.project_id}`);
+    const log: ActivityLog = {
+      ...input,
+      id: crypto.randomUUID(),
+      created_at: new Date().toISOString(),
+    };
+    store.logs.push(log);
+    return structuredClone(log);
+  },
+
+  async update(id, input) {
+    const index = store.logs.findIndex(
+      (log) => log.id === id && log.project_id === input.project_id,
+    );
+    if (index === -1) throw new Error(`Activity log not found: ${id}`);
+    const log: ActivityLog = { ...store.logs[index], ...input };
+    store.logs[index] = log;
+    return structuredClone(log);
+  },
+  async delete(id, projectId) {
+    const index = store.logs.findIndex(
+      (log) => log.id === id && log.project_id === projectId,
+    );
+    if (index === -1) throw new Error(`Activity log not found: ${id}`);
+    store.logs.splice(index, 1);
   },
 };

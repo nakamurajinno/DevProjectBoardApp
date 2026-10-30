@@ -1,5 +1,4 @@
 import { Suspense } from "react";
-import { ActivityLogList } from "@/components/board/ActivityLogList";
 import { DrawerLoading, DrawerNotFound } from "@/components/board/DrawerStates";
 import { ProjectEditPanel } from "@/components/board/ProjectEditPanel";
 import { Drawer } from "@/components/ui/Overlay";
@@ -29,12 +28,13 @@ async function ProjectEdit({
   ]);
   if (!project) return <DrawerNotFound />;
 
-  // key: 保存後に再表示したとき、最新の値でフォームを初期化し直す
+  // key: 保存後や一覧から活動ログを追加した後に再表示したとき、最新の値でフォームを初期化し直す
+  // (活動ログの編集・削除はプロジェクトの Save で行うため updated_at も更新される)
   return (
     <ProjectEditPanel
-      key={project.updated_at}
+      key={`${project.updated_at}:${logs.map((log) => log.id).join(",")}`}
       project={project}
-      logs={<ActivityLogList logs={logs} />}
+      logs={logs}
     />
   );
 }

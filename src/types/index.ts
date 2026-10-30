@@ -54,3 +54,9 @@ export type ProjectInput = Pick<
 > & {
   links: Omit<ProjectLink, "id">[];
 };
+
+// 活動ログ登録・更新時の入力値
+export type ActivityLogInput = Pick<
+  ActivityLog,
+  "project_id" | "worked_on" | "hours" | "content"
+>;

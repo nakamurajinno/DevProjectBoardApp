@@ -34,6 +34,7 @@ async function ProjectDetail({
 
   return (
     <DetailTabs
+      projectId={project.id}
       info={<ProjectInfoView project={project} />}
       logs={<ActivityLogList logs={logs} />}
       footer={
@@ -44,7 +45,7 @@ async function ProjectDetail({
             className="inline-flex min-w-28 items-center justify-center gap-1.5 rounded-md bg-primary px-4 py-1.5 text-sm font-medium text-white hover:bg-primary-hover"
           >
             <Pencil className="size-4" aria-hidden />
-            編集
+            Edit
           </Link>
         </div>
       }

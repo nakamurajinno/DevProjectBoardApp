@@ -2,7 +2,8 @@
 
 import { X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useId, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 
 // 閉じる = 一覧 (closeHref) へ戻る。URL と表示状態を一致させるためルーティングで開閉する。
 function useCloseOnEscape(closeHref: string) {
@@ -61,18 +62,59 @@ export function Modal({
 }) {
   const close = useCloseOnEscape(closeHref);
   return (
+    <ModalFrame title={title} onClose={close}>
+      {children}
+    </ModalFrame>
+  );
+}
+
+// ルーティングを伴わず、呼び出し側の state で開閉するモーダル。
+// テーブル行 (ホバー時のみ表示・overflow あり) の中から開けるよう body 直下へポータル表示する。
+export function DialogModal({
+  title,
+  onClose,
+  children,
+}: {
+  title: string;
+  onClose: () => void;
+  children: ReactNode;
+}) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return createPortal(
+    <ModalFrame title={title} onClose={onClose}>
+      {children}
+    </ModalFrame>,
+    document.body,
+  );
+}
+
+function ModalFrame({
+  title,
+  onClose,
+  children,
+}: {
+  title: string;
+  onClose: () => void;
+  children: ReactNode;
+}) {
+  const titleId = useId();
+  return (
     <div className="fixed inset-0 z-40 grid place-items-center overflow-y-auto p-4">
-      <div className="absolute inset-0 bg-black/20" onClick={close} aria-hidden />
+      <div className="absolute inset-0 bg-black/20" onClick={onClose} aria-hidden />
       <div
         role="dialog"
         aria-modal="true"
-        aria-labelledby="modal-title"
+        aria-labelledby={titleId}
         className="relative w-full max-w-2xl border-2 border-gray-900 bg-white p-2 shadow-2xl"
       >
-        <h2
-          id="modal-title"
-          className="rounded-md bg-panel-title px-3 py-2.5 text-sm"
-        >
+        <h2 id={titleId} className="rounded-md bg-panel-title px-3 py-2.5 text-sm">
           {title}
         </h2>
         <div className="px-4 pb-3 pt-4 sm:px-8">{children}</div>
