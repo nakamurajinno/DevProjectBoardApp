@@ -4,7 +4,7 @@
 export const REMEMBER_COOKIE = "pb_remember";
 
 // ブラウザの上限に合わせた保持期間 (400日)
-export const REMEMBER_MAX_AGE = 60 * 60 * 24 * 400;
+const REMEMBER_MAX_AGE = 60 * 60 * 24 * 400;
 
 type CookieOptions = { maxAge?: number; expires?: Date | number | string };
 

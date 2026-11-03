@@ -7,13 +7,15 @@ import {
   validateActivityLogInput,
   type ActivityLogFieldErrors,
 } from "@/lib/validation/activityLog";
+import type { ActivityLogFormValues } from "@/types";
 
 export type ActivityLogActionResult =
   | { ok: true }
   | { ok: false; errors?: ActivityLogFieldErrors; message?: string };
 
+// 引数の型はクライアント側の呼び出しのためのもので、届いた値はサーバー側で必ず検証する
 export async function createActivityLog(
-  input: unknown,
+  input: ActivityLogFormValues,
 ): Promise<ActivityLogActionResult> {
   const user = await requireEditor();
   if (!user) return { ok: false, message: FORBIDDEN_MESSAGE };

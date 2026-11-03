@@ -48,12 +48,12 @@ export async function requireEditor(): Promise<AppUser | null> {
   return canEdit(user.role) ? user : null;
 }
 
-// Server Action 用: 管理ユーザでなければ null を返す
+// Server Action 用: 管理ユーザーでなければ null を返す
 export async function requireAdmin(): Promise<AppUser | null> {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   return isAdmin(user.role) ? user : null;
 }
 
-export const FORBIDDEN_MESSAGE = "この操作を行う権限がありません（参照ユーザ）";
-export const ADMIN_ONLY_MESSAGE = "この操作は組織の管理ユーザのみ行えます";
+export const FORBIDDEN_MESSAGE = "この操作を行う権限がありません（参照ユーザー）";
+export const ADMIN_ONLY_MESSAGE = "この操作は組織の管理ユーザーのみ行えます";

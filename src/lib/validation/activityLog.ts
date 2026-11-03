@@ -1,4 +1,5 @@
 import type { ActivityLogInput } from "@/types";
+import { str, toRecord } from "./shared";
 
 export type ActivityLogFieldErrors = Partial<
   Record<keyof ActivityLogInput, string>
@@ -12,10 +13,6 @@ const CONTENT_MAX = 2000;
 // activity_logs.hours は numeric(5, 2)
 const HOURS_MAX = 999.99;
 
-function str(value: unknown) {
-  return typeof value === "string" ? value.trim() : "";
-}
-
 // YYYY-MM-DD 形式かつ実在する日付か
 function isValidDate(value: string) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
@@ -27,7 +24,7 @@ function isValidDate(value: string) {
 export function validateActivityLogInput(
   raw: unknown,
 ): ActivityLogValidationResult {
-  const input = (raw ?? {}) as Record<string, unknown>;
+  const input = toRecord(raw);
   const errors: ActivityLogFieldErrors = {};
 
   const project_id = str(input.project_id);

@@ -3,8 +3,7 @@
 import { GripVertical, Plus, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import { fullInputClass } from "@/components/ui/form";
-
-export type LinkDraft = { key: string; label: string; url: string };
+import type { LinkDraft } from "@/types";
 
 function moveItem<T>(items: T[], from: number, to: number) {
   if (from === to || from < 0 || to < 0 || to >= items.length) return items;

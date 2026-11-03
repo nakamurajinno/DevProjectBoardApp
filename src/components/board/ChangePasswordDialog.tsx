@@ -3,7 +3,7 @@
 import { LoaderCircle } from "lucide-react";
 import { useActionState } from "react";
 import { changePassword, type ChangePasswordState } from "@/app/actions/auth";
-import { FormAlert } from "@/components/auth/AuthShell";
+import { FormAlert } from "@/components/ui/FormAlert";
 import { Button, Field, fullInputClass } from "@/components/ui/form";
 import { DialogModal } from "@/components/ui/Overlay";
 import { PASSWORD_MIN } from "@/lib/validation/auth";

@@ -11,7 +11,7 @@
 
 -- 招待を作成する。同じメールアドレスへの未使用の招待 (期限切れを含む) があれば、
 -- ロール・招待コード・有効期限を更新して再利用する (古い招待コード・リンクは無効になる)。
--- 管理ユーザのみ実行可能。
+-- 管理ユーザーのみ実行可能。
 create or replace function public.upsert_invitation(p_email text, p_role public.user_role)
 returns public.organization_invitations
 language plpgsql

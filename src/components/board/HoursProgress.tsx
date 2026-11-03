@@ -1,6 +1,4 @@
-export function formatHours(hours: number) {
-  return `${Number(hours.toFixed(2))}`;
-}
+import { formatHours } from "@/lib/format";
 
 export function HoursProgress({
   actual,

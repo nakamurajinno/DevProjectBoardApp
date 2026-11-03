@@ -9,7 +9,7 @@ import { createClient } from "@/lib/supabase/server";
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
   const tokenHash = searchParams.get("token_hash");
-  const type = searchParams.get("type") as EmailOtpType | null;
+  const type = toEmailOtpType(searchParams.get("type"));
 
   if (tokenHash && type) {
     const supabase = await createClient();
@@ -24,6 +24,19 @@ export async function GET(request: NextRequest) {
   return NextResponse.redirect(
     new URL(type === "invite" ? "/invite/accept?error=expired" : "/login?error=link", origin),
   );
+}
+
+const EMAIL_OTP_TYPES: readonly EmailOtpType[] = [
+  "signup",
+  "invite",
+  "magiclink",
+  "recovery",
+  "email_change",
+  "email",
+];
+
+function toEmailOtpType(value: string | null): EmailOtpType | null {
+  return EMAIL_OTP_TYPES.find((type) => type === value) ?? null;
 }
 
 // オープンリダイレクトを防ぐため、アプリ内のパスだけを許可する

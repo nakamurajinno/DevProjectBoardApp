@@ -47,19 +47,6 @@ export function AuthShell({
   );
 }
 
-export function FormAlert({ tone = "error", children }: { tone?: "error" | "info"; children: ReactNode }) {
-  return (
-    <p
-      role={tone === "error" ? "alert" : "status"}
-      className={`rounded-lg px-3 py-2 text-xs leading-relaxed ${
-        tone === "error" ? "bg-red-50 text-red-600" : "bg-emerald-50 text-emerald-700"
-      }`}
-    >
-      {children}
-    </p>
-  );
-}
-
 export const authLinkClass = "font-medium text-accent underline-offset-4 hover:underline";
 
 export const primaryButtonClass =

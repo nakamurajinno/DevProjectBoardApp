@@ -2,8 +2,9 @@ import { canEdit } from "@/lib/auth/roles";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getMembers } from "@/lib/data/organization";
 import { getProjects } from "@/lib/data/projects";
-import { ProjectTableHead, TABLE_HEADERS } from "./ProjectTableHead";
-import { ProjectTableView, tableContainerClass } from "./ProjectTableView";
+import type { AssigneeOption } from "@/types";
+import { ProjectTableHead, TABLE_HEADERS, tableContainerClass } from "./ProjectTableHead";
+import { ProjectTableView } from "./ProjectTableView";
 
 export async function ProjectTable() {
   const [projects, user, members] = await Promise.all([
@@ -12,7 +13,7 @@ export async function ProjectTable() {
     getMembers(),
   ]);
   // 担当者フィルタの選択肢。クライアントへはメールアドレスを渡さない
-  const assignees = members.map(({ id, name }) => ({ id, name }));
+  const assignees = members.map(({ id, name }): AssigneeOption => ({ id, name }));
   return (
     <ProjectTableView projects={projects} members={assignees} canEdit={canEdit(user?.role)} />
   );

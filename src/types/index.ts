@@ -1,15 +1,22 @@
+import type { Database } from "./database";
+
 // アプリ全体で使うドメイン型
-// カラム名は将来の Supabase テーブル定義に合わせて snake_case で統一する。
+// カラム名は Supabase のテーブル定義 (src/types/database.ts) に合わせて snake_case で統一する。
 
-export type ProjectStatus = "not_started" | "in_progress" | "done";
+type Enums = Database["public"]["Enums"];
 
-export type SoftwareCategory = "web" | "mobile" | "desktop" | "tool" | "other";
+export type ProjectStatus = Enums["project_status"];
+
+export type SoftwareCategory = Enums["software_category"];
 
 export type ProjectLink = {
   id: string;
   label: string;
   url: string;
 };
+
+// 編集フォームでの関連リンク。key は並び替え・削除で行を識別するためのクライアント側の ID
+export type LinkDraft = Omit<ProjectLink, "id"> & { key: string };
 
 export type Project = {
   id: string;
@@ -67,6 +74,12 @@ export type ProjectInput = Pick<
   links: Omit<ProjectLink, "id">[];
 };
 
+// 登録・編集フォームの入力値。数値入力欄は入力途中の値を保持するため文字列で持つ
+// (サーバー側の validateProjectInput で ProjectInput に変換・検証する)
+export type ProjectFormValues = Omit<ProjectInput, "planned_hours"> & {
+  planned_hours: string;
+};
+
 // 活動ログ登録・更新時の入力値
 export type ActivityLogInput = Pick<
   ActivityLog,
@@ -74,8 +87,8 @@ export type ActivityLogInput = Pick<
 >;
 
 // ユーザーの権限 (所属組織内でのロール)。
-// viewer: 参照ユーザ / editor: 一般ユーザ / admin: 管理ユーザ (一般ユーザ + メンバー招待・ロール変更)
-export type UserRole = "viewer" | "editor" | "admin";
+// viewer: 参照ユーザー / editor: 一般ユーザー / admin: 管理ユーザー (一般ユーザー + メンバー招待・ロール変更)
+export type UserRole = Enums["user_role"];
 
 // ログイン中のユーザー。クライアントへ渡してよい項目だけを持つ。
 // name はユーザー名 (profiles.username)。
@@ -88,6 +101,11 @@ export type AppUser = {
   organizationName: string;
 };
 
+// 活動ログフォームの入力値 (作業時間は入力途中の値を保持するため文字列)
+export type ActivityLogFormValues = Omit<ActivityLogInput, "hours"> & {
+  hours: string;
+};
+
 // 組織のメンバー (組織設定画面の一覧用)
 export type OrganizationMember = {
   id: string;
@@ -96,6 +114,12 @@ export type OrganizationMember = {
   role: UserRole;
   created_at: string;
 };
+
+// 一覧の担当者フィルタの選択肢。クライアントへはメールアドレスを渡さない
+export type AssigneeOption = Pick<OrganizationMember, "id" | "name">;
+
+// ロール変更の 1 件分 (組織設定画面の「変更を保存」で送る)
+export type MemberRoleChange = { userId: string; role: UserRole };
 
 // 招待コードから分かる招待内容 (サインアップ画面用)
 export type InvitationInfo = {

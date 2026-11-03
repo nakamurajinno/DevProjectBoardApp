@@ -1,8 +1,8 @@
 "use client";
 
 import { Search, X } from "lucide-react";
-import { inputClass } from "@/components/ui/form";
-import { STATUS_OPTIONS } from "@/lib/constants";
+import { inputClass, Select, type SelectOption } from "@/components/ui/form";
+import { isProjectStatus, STATUS_OPTIONS } from "@/lib/constants";
 import {
   ASSIGNEE_ALL,
   ASSIGNEE_UNASSIGNED,
@@ -10,9 +10,12 @@ import {
   isFilterActive,
   type ProjectFilter,
 } from "@/lib/projectFilter";
-import type { ProjectStatus } from "@/types";
+import type { AssigneeOption } from "@/types";
 
-export type AssigneeOption = { id: string; name: string };
+const STATUS_FILTER_OPTIONS: SelectOption<ProjectFilter["status"]>[] = [
+  { value: "all", label: "すべて" },
+  ...STATUS_OPTIONS,
+];
 
 // 一覧上部の検索バー (キーワード・ステータス・担当者) と件数表示
 export function ProjectSearchBar({
@@ -49,33 +52,27 @@ export function ProjectSearchBar({
           />
         </div>
         <div className="grid grid-cols-2 gap-2 sm:flex">
-          <select
+          <Select
+            options={STATUS_FILTER_OPTIONS}
             value={filter.status}
-            onChange={(e) => set({ status: e.target.value as ProjectStatus | "all" })}
+            onChange={(e) => {
+              const status = e.target.value;
+              set({ status: isProjectStatus(status) ? status : "all" });
+            }}
             aria-label="ステータスで絞り込み"
-            className={`${inputClass} sm:w-36`}
-          >
-            <option value="all">すべて</option>
-            {STATUS_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-          <select
+            className="sm:w-36"
+          />
+          <Select
+            options={[
+              { value: ASSIGNEE_ALL, label: "全員" },
+              { value: ASSIGNEE_UNASSIGNED, label: "未割り当て" },
+              ...members.map((m) => ({ value: m.id, label: m.name })),
+            ]}
             value={filter.assignee}
             onChange={(e) => set({ assignee: e.target.value })}
             aria-label="担当者で絞り込み"
-            className={`${inputClass} sm:w-44`}
-          >
-            <option value={ASSIGNEE_ALL}>全員</option>
-            <option value={ASSIGNEE_UNASSIGNED}>未割り当て</option>
-            {members.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.name}
-              </option>
-            ))}
-          </select>
+            className="sm:w-44"
+          />
         </div>
       </div>
       <div className="flex min-h-7 items-center justify-between gap-3 text-xs text-slate-500">

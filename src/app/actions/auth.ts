@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient as createStatelessClient } from "@supabase/supabase-js";
+import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { isMockAuth } from "@/lib/auth/config";
@@ -8,6 +9,7 @@ import {
   findMockUser,
   mockAuthenticate,
   mockChangePassword,
+  mockChangeUsername,
   mockFindEmailByUsername,
   mockUsernameExists,
   mockSignUp,
@@ -324,7 +326,7 @@ export type InviteSessionResult =
   | { ok: false; message: string };
 
 const INVITATION_UNAVAILABLE_MESSAGE =
-  "招待が取り消されたか、有効期限が切れています。組織の管理ユーザに再度招待を依頼してください";
+  "招待が取り消されたか、有効期限が切れています。組織の管理ユーザーに再度招待を依頼してください";
 
 // 招待メールのリンクは URL のハッシュ (#access_token=...) でトークンを返すため、
 // ブラウザで読み取ったトークンをサーバーへ渡して認証 Cookie を発行する
@@ -505,4 +507,52 @@ export async function changePassword(
   if (signOutError) console.error("Failed to sign out other sessions", signOutError);
 
   return { ok: true };
+}
+
+// ============================================================
+// ユーザー名変更 (ログイン中のユーザー)
+// ============================================================
+
+export type ChangeUsernameState =
+  | { ok: true; username: string }
+  | { ok: false; errors?: { username?: string }; message?: string; username?: string }
+  | undefined;
+
+// ユーザー名はログインにも使うため、同じ組織内はもちろん他のユーザーとも重複させない
+// (DB の一意制約 profiles_username_lower_idx で大文字小文字を区別せず保証している)
+export async function changeUsername(
+  _prev: ChangeUsernameState,
+  formData: FormData,
+): Promise<ChangeUsernameState> {
+  const username = String(formData.get("username") ?? "").trim();
+  const usernameError = validateUsername(username);
+  if (usernameError) return { ok: false, errors: { username: usernameError }, username };
+
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+  if (username === user.name)
+    return { ok: false, errors: { username: "現在のユーザー名と同じです" }, username };
+
+  if (isMockAuth) {
+    if (!mockChangeUsername(user.id, username))
+      return { ok: false, errors: { username: USERNAME_TAKEN_MESSAGE }, username };
+    revalidatePath("/", "layout");
+    return { ok: true, username };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("update_my_username", { p_username: username });
+  if (error) {
+    if (error.code === "23505")
+      return { ok: false, errors: { username: USERNAME_TAKEN_MESSAGE }, username };
+    console.error("Failed to change username", error);
+    return {
+      ok: false,
+      message: "ユーザー名の変更に失敗しました。時間をおいて再度お試しください",
+      username,
+    };
+  }
+
+  revalidatePath("/", "layout");
+  return { ok: true, username };
 }

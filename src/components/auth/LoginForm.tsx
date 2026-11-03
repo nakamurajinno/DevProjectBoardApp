@@ -6,7 +6,8 @@ import { useSearchParams } from "next/navigation";
 import { useActionState, useState } from "react";
 import { login } from "@/app/actions/auth";
 import { fullInputClass } from "@/components/ui/form";
-import { FormAlert, primaryButtonClass } from "./AuthShell";
+import { FormAlert } from "@/components/ui/FormAlert";
+import { primaryButtonClass } from "./AuthShell";
 import { roleOption } from "@/lib/auth/roles";
 import type { UserRole } from "@/types";
 

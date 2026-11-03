@@ -154,7 +154,7 @@ export function Tooltip({
   );
 }
 
-export const menuClass =
+const menuClass =
   "overflow-hidden rounded-lg border border-slate-200 bg-white p-1 text-sm text-slate-700 shadow-lg";
 export const menuItemClass =
   "flex w-full items-center gap-2 rounded-md px-2.5 py-2.5 transition-colors sm:py-2";

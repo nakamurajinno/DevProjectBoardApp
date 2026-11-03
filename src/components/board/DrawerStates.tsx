@@ -22,7 +22,7 @@ export function DrawerNotFound() {
 export function DrawerForbidden() {
   return (
     <p className="px-5 py-16 text-center text-sm text-slate-500">
-      参照ユーザの権限のため、この操作は行えません。
+      参照ユーザーの権限のため、この操作は行えません。
     </p>
   );
 }

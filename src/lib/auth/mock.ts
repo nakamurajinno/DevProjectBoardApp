@@ -10,7 +10,7 @@ import type {
 // デモアカウントのパスワードはすべて "password"。ログイン画面のプレビュー用ボタンからもログインできる。
 // モックではメールは送信されないため、招待は招待コード (リンク) を共有して使う。
 export const MOCK_SESSION_COOKIE = "pb_mock_session";
-export const MOCK_PASSWORD = "password";
+const MOCK_PASSWORD = "password";
 
 export const MOCK_DEMO_ORG_ID = "org-demo";
 export const MOCK_OTHER_ORG_ID = "org-other";
@@ -47,14 +47,15 @@ const seed = (): MockAuthStore => ({
     { id: MOCK_DEMO_ORG_ID, name: "デモ組織", created_at: "2026-10-01T00:00:00.000Z" },
     { id: MOCK_OTHER_ORG_ID, name: "別の組織", created_at: "2026-10-01T00:00:00.000Z" },
   ],
-  accounts: [
-    { id: "u-admin", name: "管理ユーザ", email: "admin@example.com", role: "admin" },
-    { id: "u-editor", name: "一般ユーザ", email: "editor@example.com", role: "editor" },
-    { id: "u-viewer", name: "参照ユーザ", email: "viewer@example.com", role: "viewer" },
-  ]
-    .map((u) => ({
+  accounts: (
+    [
+      { id: "u-admin", name: "管理ユーザー", email: "admin@example.com", role: "admin" },
+      { id: "u-editor", name: "一般ユーザー", email: "editor@example.com", role: "editor" },
+      { id: "u-viewer", name: "参照ユーザー", email: "viewer@example.com", role: "viewer" },
+    ] satisfies Pick<MockAccount, "id" | "name" | "email" | "role">[]
+  )
+    .map((u): MockAccount => ({
       ...u,
-      role: u.role as UserRole,
       password: MOCK_PASSWORD,
       organizationId: MOCK_DEMO_ORG_ID,
       created_at: "2026-10-01T00:00:00.000Z",
@@ -105,7 +106,7 @@ export function findMockUser(id: string | undefined): AppUser | null {
   };
 }
 
-export function mockEmailExists(email: string) {
+function mockEmailExists(email: string) {
   return store.accounts.some((a) => sameEmail(a.email, email));
 }
 
@@ -134,6 +135,18 @@ export function mockChangePassword(userId: string, currentPassword: string, newP
   const account = store.accounts.find((a) => a.id === userId);
   if (!account || account.password !== currentPassword) return false;
   account.password = newPassword;
+  return true;
+}
+
+// ユーザー名を変更する。他のユーザーが使用中 (大文字小文字を区別しない) なら false
+export function mockChangeUsername(userId: string, username: string) {
+  const account = store.accounts.find((a) => a.id === userId);
+  if (!account) return false;
+  const taken = store.accounts.some(
+    (a) => a.id !== userId && a.name.toLowerCase() === username.toLowerCase(),
+  );
+  if (taken) return false;
+  account.name = username;
   return true;
 }
 
@@ -219,6 +232,19 @@ export function mockCreateInvitation(organizationId: string, role: UserRole) {
   return invitation.token;
 }
 
+// メンバーを組織から除外する (モックではアカウントごと削除する)。失敗時はエラーメッセージを返す
+export function mockRemoveMember(organizationId: string, userId: string): string | null {
+  const index = store.accounts.findIndex((a) => a.id === userId && a.organizationId === organizationId);
+  if (index === -1) return "メンバーが見つかりません";
+  const account = store.accounts[index];
+  const otherAdmins = store.accounts.some(
+    (a) => a.organizationId === organizationId && a.role === "admin" && a.id !== userId,
+  );
+  if (account.role === "admin" && !otherAdmins) return "組織には管理ユーザーが 1 人以上必要です";
+  store.accounts.splice(index, 1);
+  return null;
+}
+
 export function mockSetMemberRole(
   organizationId: string,
   userId: string,
@@ -231,7 +257,7 @@ export function mockSetMemberRole(
   const otherAdmins = store.accounts.some(
     (a) => a.organizationId === organizationId && a.role === "admin" && a.id !== userId,
   );
-  if (role !== "admin" && !otherAdmins) return "組織には管理ユーザが 1 人以上必要です";
+  if (role !== "admin" && !otherAdmins) return "組織には管理ユーザーが 1 人以上必要です";
   account.role = role;
   return null;
 }

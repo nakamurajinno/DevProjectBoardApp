@@ -6,9 +6,10 @@ import { useActionState, useState } from "react";
 import { signup } from "@/app/actions/auth";
 import { Field, fullInputClass } from "@/components/ui/form";
 import { roleOption } from "@/lib/auth/roles";
-import { PASSWORD_MIN, type SignupMode } from "@/lib/validation/auth";
+import { PASSWORD_MIN, USERNAME_MAX_LENGTH, type SignupMode } from "@/lib/validation/auth";
 import type { InvitationInfo } from "@/types";
-import { authLinkClass, FormAlert, primaryButtonClass } from "./AuthShell";
+import { FormAlert } from "@/components/ui/FormAlert";
+import { authLinkClass, primaryButtonClass } from "./AuthShell";
 
 const inputClass = `${fullInputClass} py-2.5`;
 
@@ -16,13 +17,13 @@ const MODES: { value: SignupMode; label: string; description: string; icon: type
   {
     value: "create",
     label: "新規組織を作成して登録",
-    description: "新しい組織を作成し、あなたが管理ユーザになります",
+    description: "新しい組織を作成し、あなたが管理ユーザーになります",
     icon: Building2,
   },
   {
     value: "join",
     label: "招待コードで参加",
-    description: "管理ユーザから招待された既存の組織に参加します",
+    description: "管理ユーザーから招待された既存の組織に参加します",
     icon: Ticket,
   },
 ];
@@ -112,10 +113,10 @@ export function SignupForm({
               「{invitation.organizationName}」から「{roleOption(invitation.role).label}」として招待されています
             </FormAlert>
           ) : initialToken ? (
-            <FormAlert>招待リンクが無効か、有効期限が切れています。管理ユーザに再度招待を依頼してください</FormAlert>
+            <FormAlert>招待リンクが無効か、有効期限が切れています。管理ユーザーに再度招待を依頼してください</FormAlert>
           ) : (
             <p className="text-xs leading-relaxed text-slate-500">
-              既存の組織への参加には、組織の管理ユーザからの招待が必要です。管理ユーザから共有された招待リンクを開くか、招待コードを入力して登録してください。
+              既存の組織への参加には、組織の管理ユーザーからの招待が必要です。管理ユーザーから共有された招待リンクを開くか、招待コードを入力して登録してください。
             </p>
           )}
           <Field label="招待コード" htmlFor="invitationToken" error={errors.invitationToken}>
@@ -139,14 +140,14 @@ export function SignupForm({
             name="username"
             autoComplete="nickname"
             defaultValue={values?.username}
-            maxLength={50}
+            maxLength={USERNAME_MAX_LENGTH}
             placeholder="例: じんの"
             aria-invalid={!!errors.username}
             aria-describedby="username-hint"
             className={inputClass}
           />
           <p id="username-hint" className="mt-1 text-xs text-slate-500">
-            画面に表示される名前です。ログイン時にメールアドレスの代わりにも使えます（「@」は使用不可）
+            画面に表示される名前です（全角10文字・半角20文字以内）。ログイン時にメールアドレスの代わりにも使えます（「@」は使用不可）
           </p>
         </Field>
         <Field label="メールアドレス" htmlFor="email" error={errors.email}>

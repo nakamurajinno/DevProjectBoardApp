@@ -3,7 +3,7 @@
 import { Link2, LoaderCircle } from "lucide-react";
 import { useActionState } from "react";
 import { inviteMember } from "@/app/actions/organization";
-import { Button, inputClass } from "@/components/ui/form";
+import { Button, Select } from "@/components/ui/form";
 import { ROLE_OPTIONS } from "@/lib/auth/roles";
 import type { UserRole } from "@/types";
 import { CopyButton } from "./CopyButton";
@@ -13,6 +13,11 @@ const ROLE_DESCRIPTIONS: Record<UserRole, string> = {
   editor: "編集が可能",
   admin: "組織の管理が可能",
 };
+
+const INVITE_ROLE_OPTIONS = ROLE_OPTIONS.map((o) => ({
+  value: o.value,
+  label: `${o.label}（${ROLE_DESCRIPTIONS[o.value]}）`,
+}));
 
 export function InviteMemberForm() {
   const [state, formAction, pending] = useActionState(inviteMember, undefined);
@@ -24,13 +29,13 @@ export function InviteMemberForm() {
           <label htmlFor="invite-role" className="block text-sm font-medium text-slate-700">
             招待するユーザーのロール
           </label>
-          <select id="invite-role" name="role" defaultValue="editor" className={`${inputClass} w-full`}>
-            {ROLE_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}（{ROLE_DESCRIPTIONS[o.value]}）
-              </option>
-            ))}
-          </select>
+          <Select
+            id="invite-role"
+            name="role"
+            defaultValue="editor"
+            options={INVITE_ROLE_OPTIONS}
+            className="w-full"
+          />
         </div>
         <Button type="submit" disabled={pending}>
           {pending ? (

@@ -18,6 +18,14 @@ export const CATEGORY_OPTIONS: { value: SoftwareCategory; label: string }[] = [
   { value: "other", label: "その他" },
 ];
 
+export function isProjectStatus(value: unknown): value is ProjectStatus {
+  return STATUS_OPTIONS.some((o) => o.value === value);
+}
+
+export function isSoftwareCategory(value: unknown): value is SoftwareCategory {
+  return CATEGORY_OPTIONS.some((o) => o.value === value);
+}
+
 export function statusOption(status: ProjectStatus) {
   return STATUS_OPTIONS.find((o) => o.value === status) ?? STATUS_OPTIONS[0];
 }

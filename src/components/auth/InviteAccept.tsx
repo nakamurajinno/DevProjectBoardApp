@@ -5,8 +5,9 @@ import Link from "next/link";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { acceptInviteSession, completeInvitation } from "@/app/actions/auth";
 import { Field, fullInputClass } from "@/components/ui/form";
-import { PASSWORD_MIN } from "@/lib/validation/auth";
-import { authLinkClass, FormAlert, primaryButtonClass } from "./AuthShell";
+import { PASSWORD_MIN, USERNAME_MAX_LENGTH } from "@/lib/validation/auth";
+import { FormAlert } from "@/components/ui/FormAlert";
+import { authLinkClass, primaryButtonClass } from "./AuthShell";
 
 type InvitedUser = { email: string; name: string; organizationName?: string };
 
@@ -15,7 +16,7 @@ type Status =
   | { kind: "error"; message: string }
   | { kind: "ready"; user: InvitedUser };
 
-const INVALID_LINK = "招待リンクが無効か、有効期限が切れています。組織の管理ユーザに再度招待を依頼してください";
+const INVALID_LINK = "招待リンクが無効か、有効期限が切れています。組織の管理ユーザーに再度招待を依頼してください";
 
 // 招待メールのリンクは、Supabase での確認後に URL のハッシュ
 // (#access_token=...&refresh_token=...&type=invite) 付きでこの画面へ戻ってくる。
@@ -113,7 +114,7 @@ function CompleteForm({ user }: { user: InvitedUser }) {
           name="username"
           autoComplete="nickname"
           defaultValue={user.name || user.email.split("@")[0]}
-          maxLength={50}
+          maxLength={USERNAME_MAX_LENGTH}
           aria-invalid={!!errors.username}
           className={`${fullInputClass} py-2.5`}
         />

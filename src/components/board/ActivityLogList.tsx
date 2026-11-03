@@ -3,13 +3,9 @@
 import { Pencil, Trash2 } from "lucide-react";
 import { useCallback, useState } from "react";
 import { DialogModal } from "@/components/ui/Overlay";
+import { formatDate, formatHours } from "@/lib/format";
 import type { ActivityLog } from "@/types";
 import { ActivityLogForm } from "./ActivityLogForm";
-import { formatHours } from "./HoursProgress";
-
-function formatDate(date: string) {
-  return date.replaceAll("-", "/").replace(/\/0(\d)/g, "/$1");
-}
 
 // 作業日の新しい順 (同日は登録の新しい順) に並べたタイムラインで表示する。
 // 並び順はリポジトリ側で決まるので、ここでは受け取った順のまま描画する。

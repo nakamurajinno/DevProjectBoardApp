@@ -3,8 +3,12 @@ import type { UserRole } from "@/types";
 
 export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export const PASSWORD_MIN = 8;
-export const USERNAME_MAX = 50;
-export const ORGANIZATION_NAME_MAX = 100;
+// ユーザー名の長さは表示幅で数える: 半角文字は 1、全角文字は 2 として 20 まで (全角なら 10 文字、半角なら 20 文字)。
+// DB の profiles_username_check (public.username_width) と同じ数え方にする
+export const USERNAME_MAX_WIDTH = 20;
+// 入力欄の maxLength。すべて半角の場合の最大文字数
+export const USERNAME_MAX_LENGTH = USERNAME_MAX_WIDTH;
+const ORGANIZATION_NAME_MAX = 100;
 
 export type SignupMode = "create" | "join";
 
@@ -42,11 +46,23 @@ export function validatePassword(password: string) {
   return undefined;
 }
 
+// 半角 (ASCII の表示可能文字・半角カタカナ) は 1、それ以外 (全角) は 2 として数えた幅
+export function usernameWidth(name: string) {
+  let width = 0;
+  for (const ch of name) {
+    const code = ch.codePointAt(0)!;
+    const isHalfWidth = (code >= 0x20 && code <= 0x7e) || (code >= 0xff61 && code <= 0xff9f);
+    width += isHalfWidth ? 1 : 2;
+  }
+  return width;
+}
+
 // ユーザー名はログインにも使うため、メールアドレスと区別できるよう「@」を含めない。
 // (一意かどうかはサーバー・DB 側で確認する)
 export function validateUsername(name: string) {
   if (!name) return "ユーザー名を入力してください";
-  if ([...name].length > USERNAME_MAX) return `ユーザー名は${USERNAME_MAX}文字以内で入力してください`;
+  if (usernameWidth(name) > USERNAME_MAX_WIDTH)
+    return "ユーザー名は全角10文字（半角20文字）以内で入力してください";
   if (name.includes("@")) return "ユーザー名に「@」は使用できません";
   return undefined;
 }

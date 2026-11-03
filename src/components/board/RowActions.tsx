@@ -2,10 +2,11 @@
 
 import { Ellipsis, FilePenLine, Pencil, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useRef, useState, useTransition } from "react";
+import { useRef, useTransition } from "react";
 import { deleteProject } from "@/app/actions/projects";
 import { Menu, menuItemClass, Tooltip } from "@/components/ui/Floating";
 import { DialogModal } from "@/components/ui/Overlay";
+import { useDisclosure } from "@/hooks/useDisclosure";
 import type { Project } from "@/types";
 import { ActivityLogForm } from "./ActivityLogForm";
 
@@ -20,15 +21,13 @@ export function RowActions({
   project: Pick<Project, "id" | "name">;
   alwaysVisible?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
-  const [logOpen, setLogOpen] = useState(false);
+  const menu = useDisclosure();
+  const logDialog = useDisclosure();
   const [pending, startTransition] = useTransition();
   const triggerRef = useRef<HTMLButtonElement>(null);
-  const close = useCallback(() => setOpen(false), []);
-  const closeLog = useCallback(() => setLogOpen(false), []);
 
   const handleDelete = () => {
-    setOpen(false);
+    menu.close();
     if (!confirm(`「${project.name}」を削除しますか？`)) return;
     startTransition(async () => {
       const result = await deleteProject(project.id);
@@ -43,7 +42,7 @@ export function RowActions({
         alwaysVisible
           ? ""
           : `group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100 ${
-              open ? "opacity-100" : "opacity-0"
+              menu.isOpen ? "opacity-100" : "opacity-0"
             }`
       }`}
     >
@@ -53,7 +52,7 @@ export function RowActions({
           className={circleButton}
           aria-label={`${project.name}の活動ログ入力`}
           aria-haspopup="dialog"
-          onClick={() => setLogOpen(true)}
+          onClick={logDialog.open}
         >
           <FilePenLine className="size-4" aria-hidden />
         </button>
@@ -64,19 +63,19 @@ export function RowActions({
         className={circleButton}
         aria-label="その他の操作"
         aria-haspopup="menu"
-        aria-expanded={open}
+        aria-expanded={menu.isOpen}
         disabled={pending}
-        onClick={() => setOpen((v) => !v)}
+        onClick={menu.toggle}
       >
         <Ellipsis className="size-4" aria-hidden />
       </button>
-      {open && (
-        <Menu anchorRef={triggerRef} onClose={close}>
+      {menu.isOpen && (
+        <Menu anchorRef={triggerRef} onClose={menu.close}>
           <Link
             role="menuitem"
             href={`/projects/${project.id}/edit`}
             className={`${menuItemClass} hover:bg-slate-100`}
-            onClick={close}
+            onClick={menu.close}
           >
             <Pencil className="size-4" aria-hidden />
             編集
@@ -92,9 +91,9 @@ export function RowActions({
           </button>
         </Menu>
       )}
-      {logOpen && (
-        <DialogModal title={`活動ログ入力 - ${project.name}`} onClose={closeLog}>
-          <ActivityLogForm projectId={project.id} onCancel={closeLog} onSaved={closeLog} />
+      {logDialog.isOpen && (
+        <DialogModal title={`活動ログ入力 - ${project.name}`} onClose={logDialog.close}>
+          <ActivityLogForm projectId={project.id} onCancel={logDialog.close} onSaved={logDialog.close} />
         </DialogModal>
       )}
     </div>

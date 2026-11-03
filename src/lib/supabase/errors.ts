@@ -23,7 +23,7 @@ export type SupabaseErrorInfo = {
 
 const str = (v: unknown) => (typeof v === "string" && v !== "" ? v : undefined);
 
-export function describeSupabaseError(step: string, error: unknown): SupabaseErrorInfo {
+function describeSupabaseError(step: string, error: unknown): SupabaseErrorInfo {
   if (error && typeof error === "object") {
     const e = error as ErrorLike;
     return {
@@ -40,7 +40,7 @@ export function describeSupabaseError(step: string, error: unknown): SupabaseErr
 }
 
 // 画面表示用の 1 行 (例: "[upsert_invitation] 23505 duplicate key ... / details: Key (...)=(...) already exists.")
-export function formatSupabaseError(info: SupabaseErrorInfo): string {
+function formatSupabaseError(info: SupabaseErrorInfo): string {
   const head = [info.code, info.status ? `HTTP ${info.status}` : undefined].filter(Boolean).join(" ");
   return [
     `[${info.step}]${head ? ` ${head}` : ""} ${info.message}`,

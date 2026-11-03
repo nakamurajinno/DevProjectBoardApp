@@ -251,6 +251,7 @@ export type Database = {
         Args: { p_user_id: string; p_role: Database["public"]["Enums"]["user_role"] };
         Returns: undefined;
       };
+      remove_member: { Args: { p_user_id: string }; Returns: undefined };
       update_my_display_name: { Args: { p_display_name: string }; Returns: undefined };
       update_my_username: { Args: { p_username: string }; Returns: undefined };
       get_login_email: { Args: { p_username: string }; Returns: string | null };

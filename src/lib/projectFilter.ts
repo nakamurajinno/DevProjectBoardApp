@@ -27,7 +27,7 @@ export function isFilterActive(filter: ProjectFilter) {
 
 // 表記ゆれを吸収した検索用文字列にする。
 // NFKC で全角英数・半角カナを正規化し、小文字化し、カタカナをひらがなに寄せる。
-export function normalizeForSearch(text: string) {
+function normalizeForSearch(text: string) {
   return text
     .normalize("NFKC")
     .toLowerCase()

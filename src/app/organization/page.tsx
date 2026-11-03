@@ -1,11 +1,12 @@
-import { ArrowLeft, Building2 } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { Header } from "@/components/board/Header";
-import { RoleBadge } from "@/components/board/RoleBadge";
 import { InviteMemberForm } from "@/components/organization/InviteMemberForm";
 import { MemberList } from "@/components/organization/MemberList";
+import { OrganizationSection } from "@/components/organization/OrganizationSection";
+import { OrganizationSummary } from "@/components/organization/OrganizationSummary";
 import { isAdmin } from "@/lib/auth/roles";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getMembers } from "@/lib/data/organization";
@@ -13,6 +14,9 @@ import { getMembers } from "@/lib/data/organization";
 export const metadata: Metadata = {
   title: "組織・メンバー | 個人開発プロジェクト管理ボード",
 };
+
+const INVITE_DESCRIPTION =
+  "ロールを選んで招待リンクを発行し、招待したい相手に共有してください。リンクを開いたユーザーがメールアドレス・ユーザー名・パスワードを入力してアカウント登録すると、選択したロールでこの組織に自動で所属します。招待リンクは 1 回のみ使用でき、有効期限は 7 日間です。";
 
 export default function OrganizationPage() {
   return (
@@ -43,54 +47,17 @@ async function OrganizationContent() {
 
   return (
     <>
-      <section className="flex items-center gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-        <span className="grid size-11 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-600">
-          <Building2 className="size-5" aria-hidden />
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="text-xs text-slate-500">所属組織</p>
-          <h2 className="truncate text-lg font-semibold tracking-tight text-slate-900">
-            {user.organizationName}
-          </h2>
-        </div>
-        <div className="text-right">
-          <p className="mb-1 text-xs text-slate-500">あなたの権限</p>
-          <RoleBadge role={user.role} />
-        </div>
-      </section>
+      <OrganizationSummary user={user} />
 
       {admin && (
-        <Section
-          title="メンバーを招待"
-          description="ロールを選んで招待リンクを発行し、招待したい相手に共有してください。リンクを開いたユーザーがメールアドレス・ユーザー名・パスワードを入力してアカウント登録すると、選択したロールでこの組織に自動で所属します。招待リンクは 1 回のみ使用でき、有効期限は 7 日間です。"
-        >
+        <OrganizationSection title="メンバーを招待" description={INVITE_DESCRIPTION}>
           <InviteMemberForm />
-        </Section>
+        </OrganizationSection>
       )}
 
-      <Section title={`メンバー（${members.length}人）`}>
+      <OrganizationSection title={`メンバー（${members.length}人）`}>
         <MemberList members={members} currentUserId={user.id} editable={admin} />
-      </Section>
+      </OrganizationSection>
     </>
-  );
-}
-
-function Section({
-  title,
-  description,
-  children,
-}: {
-  title: string;
-  description?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
-      <div className="border-b border-slate-100 px-5 py-4">
-        <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
-        {description && <p className="mt-1 text-xs leading-relaxed text-slate-500">{description}</p>}
-      </div>
-      <div className="p-5">{children}</div>
-    </section>
   );
 }

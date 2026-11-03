@@ -9,6 +9,7 @@ import {
   validateProjectInput,
   type ProjectFieldErrors,
 } from "@/lib/validation/project";
+import type { ActivityLogFormValues, ActivityLogInput, ProjectFormValues } from "@/types";
 
 export type ProjectActionResult =
   | { errors: ProjectFieldErrors; message?: string }
@@ -16,12 +17,14 @@ export type ProjectActionResult =
 
 // 編集モード中に行った活動ログの変更。フッターの Save でプロジェクトと一緒に確定する。
 export type ActivityLogChanges = {
-  updated: { id: string; input: unknown }[];
+  updated: { id: string; input: ActivityLogInput | ActivityLogFormValues }[];
   deleted: string[];
 };
 
+// 引数の型はクライアント側の呼び出しのためのもの。
+// 届いた値は信用せず、validate* 関数でサーバー側で必ず検証する。
 export async function createProject(
-  input: unknown,
+  input: ProjectFormValues,
 ): Promise<ProjectActionResult> {
   const user = await requireEditor();
   if (!user) return { errors: {}, message: FORBIDDEN_MESSAGE };
@@ -39,7 +42,7 @@ export async function createProject(
 
 export async function updateProject(
   id: string,
-  input: unknown,
+  input: ProjectFormValues,
   logChanges: ActivityLogChanges = { updated: [], deleted: [] },
 ): Promise<ProjectActionResult> {
   const user = await requireEditor();

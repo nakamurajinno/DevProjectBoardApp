@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
-import type { Database } from "@/types/database";
+import { isRecord } from "@/lib/validation/shared";
+import type { Database, Json } from "@/types/database";
 import type {
   ActivityLog,
   ProjectInput,
@@ -24,12 +25,26 @@ const ACTIVITY_LOG_COLUMNS = "*, creator:profiles!activity_logs_created_by_fkey(
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+function isProjectLink(value: Json): value is ProjectLink {
+  return (
+    isRecord(value) &&
+    typeof value.id === "string" &&
+    typeof value.label === "string" &&
+    typeof value.url === "string"
+  );
+}
+
+// links は jsonb 列のため、形式の合う要素だけを ProjectLink として取り出す
+function toLinks(links: Json): ProjectLink[] {
+  return Array.isArray(links) ? links.filter(isProjectLink) : [];
+}
+
 function toProject(row: ProjectRow): ProjectWithProgress {
   return {
     ...row,
     planned_hours: Number(row.planned_hours),
     actual_hours: Number(row.actual_hours),
-    links: Array.isArray(row.links) ? (row.links as ProjectLink[]) : [],
+    links: toLinks(row.links),
   };
 }
 

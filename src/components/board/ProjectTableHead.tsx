@@ -1,3 +1,7 @@
+// デスクトップ表示のテーブル枠 (lg 以上でのみ表示し、横スクロールは枠側で持つ)
+export const tableContainerClass =
+  "hidden overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm lg:block";
+
 export const TABLE_HEADERS = ["No.", "状況", "アプリ名", "概要", "SW区分", "登録者", "工数", ""];
 
 export function ProjectTableHead() {

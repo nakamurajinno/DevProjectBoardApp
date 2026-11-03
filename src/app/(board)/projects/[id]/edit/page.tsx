@@ -28,7 +28,7 @@ async function ProjectEdit({
   params: PageProps<"/projects/[id]/edit">["params"];
 }) {
   const { id } = await params;
-  // URL を直接開いた場合も、参照ユーザの権限では編集フォームを表示しない
+  // URL を直接開いた場合も、参照ユーザーの権限では編集フォームを表示しない
   const user = await getCurrentUser();
   if (!canEdit(user?.role)) return <DrawerForbidden />;
 

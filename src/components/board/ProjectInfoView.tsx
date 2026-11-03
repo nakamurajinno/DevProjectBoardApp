@@ -3,7 +3,7 @@ import { Tooltip } from "@/components/ui/Floating";
 import { Field, readonlyClass } from "@/components/ui/form";
 import { categoryLabel, statusOption } from "@/lib/constants";
 import type { ProjectWithProgress } from "@/types";
-import { formatHours } from "./HoursProgress";
+import { formatHours } from "@/lib/format";
 
 export function ProjectInfoView({ project }: { project: ProjectWithProgress }) {
   return (

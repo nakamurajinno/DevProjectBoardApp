@@ -5,6 +5,7 @@ import { ActivityLogList } from "@/components/board/ActivityLogList";
 import { DetailTabs } from "@/components/board/DetailTabs";
 import { DrawerLoading, DrawerNotFound } from "@/components/board/DrawerStates";
 import { ProjectInfoView } from "@/components/board/ProjectInfoView";
+import { buttonClass } from "@/components/ui/form";
 import { Drawer } from "@/components/ui/Overlay";
 import { canEdit } from "@/lib/auth/roles";
 import { getCurrentUser } from "@/lib/auth/session";
@@ -35,7 +36,7 @@ async function ProjectDetail({
   ]);
   if (!project) return <DrawerNotFound />;
 
-  // 参照ユーザの権限では Edit ボタン (フッター) を表示しない
+  // 参照ユーザーの権限では Edit ボタン (フッター) を表示しない
   return (
     <DetailTabs
       projectId={project.id}
@@ -47,7 +48,7 @@ async function ProjectDetail({
             <Link
               href={`/projects/${project.id}/edit`}
               scroll={false}
-              className="inline-flex min-w-28 items-center justify-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-primary-hover"
+              className={buttonClass("primary")}
             >
               <Pencil className="size-4" aria-hidden />
               Edit

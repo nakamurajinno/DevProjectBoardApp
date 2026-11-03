@@ -1,74 +1,30 @@
 "use client";
 
 import Link from "next/link";
-import { useLayoutEffect, useRef, useState, useTransition } from "react";
-import { createProject } from "@/app/actions/projects";
-import { Button, Field, fullInputClass, inputClass } from "@/components/ui/form";
+import { useLayoutEffect, useRef } from "react";
+import { Button, buttonClass, Field, fullInputClass, HoursInput, Select } from "@/components/ui/form";
+import { FormAlert } from "@/components/ui/FormAlert";
+import { useProjectCreateForm } from "@/hooks/useProjectCreateForm";
 import { CATEGORY_OPTIONS } from "@/lib/constants";
-import type { ProjectFieldErrors } from "@/lib/validation/project";
-import type { SoftwareCategory } from "@/types";
-
-const INITIAL_VALUES = {
-  name: "",
-  summary: "",
-  category: "web" as SoftwareCategory,
-  planned_hours: "",
-};
 
 export function ProjectCreateForm() {
-  const [values, setValues] = useState(INITIAL_VALUES);
-  const [errors, setErrors] = useState<ProjectFieldErrors>({});
-  const [message, setMessage] = useState<string>();
-  const [pending, startTransition] = useTransition();
+  const { values, bind, errors, message, pending, handleSubmit } = useProjectCreateForm();
   const nameRef = useRef<HTMLInputElement>(null);
 
-  // Cache Components では閉じたモーダルもアンマウントされず <Activity> で隠されるだけなので、
-  // 表示のたびに名前欄へフォーカスし、隠れるタイミングで入力値・エラーを初期状態へ戻す。
+  // 閉じたモーダルは <Activity> で隠されるだけなので、表示のたびに名前欄へフォーカスする
   useLayoutEffect(() => {
     nameRef.current?.focus();
-    return () => {
-      setValues(INITIAL_VALUES);
-      setErrors({});
-      setMessage(undefined);
-    };
   }, []);
-
-  const set =
-    (key: keyof typeof values) =>
-    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
-      setValues((v) => ({ ...v, [key]: e.target.value }));
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrors({});
-    setMessage(undefined);
-    startTransition(async () => {
-      const result = await createProject({
-        ...values,
-        status: "not_started",
-        tech_stack: "",
-        scope_step1: "",
-        scope_step2: "",
-        links: [],
-      });
-      if (result?.errors) setErrors(result.errors);
-      if (result?.message) setMessage(result.message);
-    });
-  };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-      {message && (
-        <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-xs text-red-600">
-          {message}
-        </p>
-      )}
+      {message && <FormAlert>{message}</FormAlert>}
       <Field label="アプリ名" htmlFor="new-name" error={errors.name}>
         <input
           id="new-name"
           ref={nameRef}
           value={values.name}
-          onChange={set("name")}
+          onChange={bind("name")}
           aria-invalid={!!errors.name}
           placeholder="個人開発進捗管理アプリ"
           required
@@ -79,7 +35,7 @@ export function ProjectCreateForm() {
         <textarea
           id="new-summary"
           value={values.summary}
-          onChange={set("summary")}
+          onChange={bind("summary")}
           aria-invalid={!!errors.summary}
           placeholder="個人開発における進捗管理を行うWebアプリケーション"
           rows={2}
@@ -88,42 +44,27 @@ export function ProjectCreateForm() {
       </Field>
       <div className="flex flex-wrap gap-10">
         <Field label="SW区分" htmlFor="new-category" error={errors.category}>
-          <select
+          <Select
             id="new-category"
+            options={CATEGORY_OPTIONS}
             value={values.category}
-            onChange={set("category")}
-            className={`${inputClass} w-fit min-w-32`}
-          >
-            {CATEGORY_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
+            onChange={bind("category")}
+            className="w-fit min-w-32"
+          />
         </Field>
         <Field label="予定工数" htmlFor="new-hours" error={errors.planned_hours}>
-          <div className="flex items-center gap-2 text-sm">
-            <input
-              id="new-hours"
-              type="number"
-              min={0}
-              step={0.5}
-              value={values.planned_hours}
-              onChange={set("planned_hours")}
-              aria-invalid={!!errors.planned_hours}
-              placeholder="30"
-              className={`${inputClass} w-24`}
-            />
-            <span className="text-slate-500">h</span>
-          </div>
+          <HoursInput
+            id="new-hours"
+            step={0.5}
+            value={values.planned_hours}
+            onChange={bind("planned_hours")}
+            aria-invalid={!!errors.planned_hours}
+            placeholder="30"
+          />
         </Field>
       </div>
       <div className="flex justify-end gap-3 pt-2">
-        <Link
-          href="/"
-          scroll={false}
-          className="inline-flex min-w-28 items-center justify-center rounded-lg bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm ring-1 ring-inset ring-slate-200 transition-colors hover:bg-slate-50"
-        >
+        <Link href="/" scroll={false} className={buttonClass("secondary")}>
           Cancel
         </Link>
         <Button type="submit" disabled={pending}>
