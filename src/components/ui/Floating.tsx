@@ -155,7 +155,7 @@ export function Tooltip({
 }
 
 export const menuClass =
-  "w-32 overflow-hidden rounded-lg border border-slate-200 bg-white p-1 text-sm text-slate-700 shadow-lg";
+  "overflow-hidden rounded-lg border border-slate-200 bg-white p-1 text-sm text-slate-700 shadow-lg";
 export const menuItemClass =
   "flex w-full items-center gap-2 rounded-md px-2.5 py-2 transition-colors";
 
@@ -164,11 +164,13 @@ export function Menu({
   anchorRef,
   onClose,
   align = "end",
+  widthClass = "w-32",
   children,
 }: {
   anchorRef: RefObject<HTMLElement | null>;
   onClose: () => void;
   align?: "start" | "center" | "end";
+  widthClass?: string;
   children: ReactNode;
 }) {
   return (
@@ -178,7 +180,7 @@ export function Menu({
       side="bottom"
       align={align}
       onDismiss={onClose}
-      className={menuClass}
+      className={`${menuClass} ${widthClass}`}
     >
       {children}
     </Floating>

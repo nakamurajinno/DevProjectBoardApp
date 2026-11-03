@@ -1,6 +1,8 @@
 import { Layers } from "lucide-react";
 import Link from "next/link";
-import { AccountMenu } from "./AccountMenu";
+import { Suspense } from "react";
+import { getCurrentUser } from "@/lib/auth/session";
+import { AccountMenu, AccountMenuSkeleton } from "./AccountMenu";
 
 export function Header() {
   return (
@@ -14,8 +16,16 @@ export function Header() {
             個人開発プロジェクト管理ボード
           </h1>
         </Link>
-        <AccountMenu />
+        {/* ログインユーザーはリクエスト時にしか決まらないため Suspense で囲む */}
+        <Suspense fallback={<AccountMenuSkeleton />}>
+          <HeaderAccount />
+        </Suspense>
       </div>
     </header>
   );
+}
+
+async function HeaderAccount() {
+  const user = await getCurrentUser();
+  return user ? <AccountMenu user={user} /> : null;
 }

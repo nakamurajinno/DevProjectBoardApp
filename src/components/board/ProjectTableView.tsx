@@ -10,10 +10,13 @@ import { ProjectTableHead } from "./ProjectTableHead";
 import { RowActions } from "./RowActions";
 import { StatusBadge } from "./StatusBadge";
 
+// canEdit が false (参照ユーザ) のときは行の操作ボタン (活動ログ入力・編集・削除) を表示しない
 export function ProjectTableView({
   projects,
+  canEdit,
 }: {
   projects: ProjectWithProgress[];
+  canEdit: boolean;
 }) {
   const router = useRouter();
   const params = useParams<{ id?: string }>();
@@ -34,7 +37,9 @@ export function ProjectTableView({
         {projects.length === 0 && (
           <tr>
             <td colSpan={7} className="py-16 text-center text-sm text-slate-500">
-              プロジェクトがありません。「+ Add Project」から登録してください。
+              {canEdit
+                ? "プロジェクトがありません。「+ Add Project」から登録してください。"
+                : "プロジェクトがありません。"}
             </td>
           </tr>
         )}
@@ -74,7 +79,7 @@ export function ProjectTableView({
               />
             </td>
             <td className="px-4 py-4" onClick={(e) => e.stopPropagation()}>
-              <RowActions project={project} />
+              {canEdit && <RowActions project={project} />}
             </td>
           </tr>
         ))}

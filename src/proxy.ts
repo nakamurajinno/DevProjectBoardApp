@@ -1,8 +1,38 @@
-import type { NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
+import { isMockAuth } from "@/lib/auth/config";
+import { findMockUser, MOCK_SESSION_COOKIE } from "@/lib/auth/mock";
 import { updateSession } from "@/lib/supabase/proxy";
 
+// ログインなしで開けるパス (ログイン・ユーザー登録・メール内リンクの受け口・招待の受諾)
+const PUBLIC_PATHS = ["/login", "/signup", "/auth", "/invite"];
+// ログイン済みなら開く必要がない (一覧へ移動する) パス
+const GUEST_ONLY_PATHS = ["/login", "/signup"];
+
+// 楽観的なチェックとして、未ログインならログイン画面へ、ログイン済みでログイン・登録画面を開いたら一覧へ移動する。
+// 権限の確認は Server Action / Server Component (src/lib/auth/session.ts) と RLS で行う。
 export async function proxy(request: NextRequest) {
-  return updateSession(request);
+  const { response, authenticated } = isMockAuth
+    ? {
+        response: NextResponse.next({ request }),
+        authenticated: !!findMockUser(request.cookies.get(MOCK_SESSION_COOKIE)?.value),
+      }
+    : await updateSession(request);
+
+  const { pathname } = request.nextUrl;
+  const isPublic = PUBLIC_PATHS.some(
+    (path) => pathname === path || pathname.startsWith(`${path}/`),
+  );
+
+  if (!authenticated && !isPublic) return redirectKeepingCookies("/login", request, response);
+  if (authenticated && GUEST_ONLY_PATHS.includes(pathname)) return redirectKeepingCookies("/", request, response);
+  return response;
+}
+
+// updateSession で更新した認証 Cookie を失わないよう、リダイレクトにも引き継ぐ
+function redirectKeepingCookies(path: string, request: NextRequest, from: NextResponse) {
+  const redirect = NextResponse.redirect(new URL(path, request.url));
+  from.cookies.getAll().forEach((cookie) => redirect.cookies.set(cookie));
+  return redirect;
 }
 
 export const config = {

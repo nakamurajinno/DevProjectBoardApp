@@ -1,10 +1,12 @@
+import { canEdit } from "@/lib/auth/roles";
+import { getCurrentUser } from "@/lib/auth/session";
 import { getProjects } from "@/lib/data/projects";
 import { ProjectTableHead, TABLE_HEADERS } from "./ProjectTableHead";
 import { ProjectTableView } from "./ProjectTableView";
 
 export async function ProjectTable() {
-  const projects = await getProjects();
-  return <ProjectTableView projects={projects} />;
+  const [projects, user] = await Promise.all([getProjects(), getCurrentUser()]);
+  return <ProjectTableView projects={projects} canEdit={canEdit(user?.role)} />;
 }
 
 export function ProjectTableSkeleton() {

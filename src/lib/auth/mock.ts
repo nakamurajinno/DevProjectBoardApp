@@ -1,0 +1,243 @@
+import type {
+  AppUser,
+  InvitationInfo,
+  OrganizationInvitation,
+  OrganizationMember,
+  UserRole,
+} from "@/types";
+
+// USE_MOCK_REPOSITORY=true のとき (Supabase 未接続での UI 確認用) に使う、
+// インメモリのアカウント・組織・招待。サーバープロセスが生きている間だけ保持される。
+// デモアカウントのパスワードはすべて "password"。ログイン画面のプレビュー用ボタンからもログインできる。
+// モックではメールは送信されないため、招待は招待コード (リンク) を共有して使う。
+export const MOCK_SESSION_COOKIE = "pb_mock_session";
+export const MOCK_PASSWORD = "password";
+
+export const MOCK_DEMO_ORG_ID = "org-demo";
+export const MOCK_OTHER_ORG_ID = "org-other";
+
+type MockOrganization = { id: string; name: string; created_at: string };
+type MockAccount = {
+  id: string;
+  name: string;
+  email: string;
+  password: string;
+  role: UserRole;
+  organizationId: string;
+  created_at: string;
+};
+type MockInvitation = OrganizationInvitation & {
+  organizationId: string;
+  accepted_at: string | null;
+};
+type MockAuthStore = {
+  organizations: MockOrganization[];
+  accounts: MockAccount[];
+  invitations: MockInvitation[];
+};
+
+const seed = (): MockAuthStore => ({
+  organizations: [
+    { id: MOCK_DEMO_ORG_ID, name: "デモ組織", created_at: "2026-10-01T00:00:00.000Z" },
+    { id: MOCK_OTHER_ORG_ID, name: "別の組織", created_at: "2026-10-01T00:00:00.000Z" },
+  ],
+  accounts: [
+    { id: "u-admin", name: "管理ユーザ", email: "admin@example.com", role: "admin" },
+    { id: "u-editor", name: "一般ユーザ", email: "editor@example.com", role: "editor" },
+    { id: "u-viewer", name: "参照ユーザ", email: "viewer@example.com", role: "viewer" },
+  ]
+    .map((u) => ({
+      ...u,
+      role: u.role as UserRole,
+      password: MOCK_PASSWORD,
+      organizationId: MOCK_DEMO_ORG_ID,
+      created_at: "2026-10-01T00:00:00.000Z",
+    }))
+    .concat({
+      id: "u-other",
+      name: "別組織ユーザー",
+      email: "other@example.com",
+      role: "admin",
+      password: MOCK_PASSWORD,
+      organizationId: MOCK_OTHER_ORG_ID,
+      created_at: "2026-10-01T00:00:00.000Z",
+    }),
+  invitations: [],
+});
+
+const globalForMock = globalThis as unknown as { __mockAuthStore?: MockAuthStore };
+const store = (globalForMock.__mockAuthStore ??= seed());
+
+const sameEmail = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
+
+export function mockPreviewAccounts() {
+  return store.accounts
+    .filter((a) => a.password === MOCK_PASSWORD && a.id.startsWith("u-"))
+    .map(({ id, email, role, organizationId }) => ({
+      id,
+      email,
+      role,
+      organizationName: findOrg(organizationId)?.name ?? "",
+    }));
+}
+
+function findOrg(id: string) {
+  return store.organizations.find((o) => o.id === id);
+}
+
+export function findMockUser(id: string | undefined): AppUser | null {
+  if (!id) return null;
+  const account = store.accounts.find((a) => a.id === id);
+  if (!account) return null;
+  return {
+    id: account.id,
+    name: account.name,
+    email: account.email,
+    role: account.role,
+    organizationId: account.organizationId,
+    organizationName: findOrg(account.organizationId)?.name ?? "",
+  };
+}
+
+export function mockEmailExists(email: string) {
+  return store.accounts.some((a) => sameEmail(a.email, email));
+}
+
+export function mockAuthenticate(
+  email: string,
+  password: string,
+): { ok: true; id: string } | { ok: false; reason: "not_found" | "wrong_password" } {
+  const account = store.accounts.find((a) => sameEmail(a.email, email));
+  if (!account) return { ok: false, reason: "not_found" };
+  if (account.password !== password) return { ok: false, reason: "wrong_password" };
+  return { ok: true, id: account.id };
+}
+
+// 現在のパスワードが正しければ新しいパスワードに変更する
+export function mockChangePassword(userId: string, currentPassword: string, newPassword: string) {
+  const account = store.accounts.find((a) => a.id === userId);
+  if (!account || account.password !== currentPassword) return false;
+  account.password = newPassword;
+  return true;
+}
+
+function findPendingInvitation(token: string) {
+  return store.invitations.find(
+    (i) => i.token === token && !i.accepted_at && new Date(i.expires_at) > new Date(),
+  );
+}
+
+export function mockGetInvitation(token: string): InvitationInfo | null {
+  const invitation = findPendingInvitation(token);
+  if (!invitation) return null;
+  return {
+    organizationName: findOrg(invitation.organizationId)?.name ?? "",
+    email: invitation.email,
+    role: invitation.role,
+  };
+}
+
+// 組織作成 (organizationName) または招待 (invitationToken) のどちらかで登録する
+export function mockSignUp(input: {
+  email: string;
+  password: string;
+  name: string;
+  organizationName?: string;
+  invitationToken?: string;
+}): { ok: true; id: string } | { ok: false; message: string } {
+  if (mockEmailExists(input.email))
+    return { ok: false, message: "このメールアドレスは既に登録されています。ログインしてください" };
+
+  const now = new Date().toISOString();
+  let organizationId: string;
+  let role: UserRole;
+  if (input.invitationToken) {
+    const invitation = findPendingInvitation(input.invitationToken);
+    if (!invitation || !sameEmail(invitation.email, input.email))
+      return { ok: false, message: "招待コードが無効か、有効期限が切れています" };
+    invitation.accepted_at = now;
+    organizationId = invitation.organizationId;
+    role = invitation.role;
+  } else if (input.organizationName) {
+    organizationId = crypto.randomUUID();
+    store.organizations.push({ id: organizationId, name: input.organizationName, created_at: now });
+    role = "admin";
+  } else {
+    return { ok: false, message: "組織を作成するか、招待コードを入力してください" };
+  }
+
+  const id = crypto.randomUUID();
+  store.accounts.push({
+    id,
+    name: input.name,
+    email: input.email,
+    password: input.password,
+    role,
+    organizationId,
+    created_at: now,
+  });
+  return { ok: true, id };
+}
+
+export function mockListMembers(organizationId: string): OrganizationMember[] {
+  return store.accounts
+    .filter((a) => a.organizationId === organizationId)
+    .sort((a, b) => a.created_at.localeCompare(b.created_at))
+    .map(({ id, name, email, role, created_at }) => ({ id, name, email, role, created_at }));
+}
+
+export function mockListInvitations(organizationId: string): OrganizationInvitation[] {
+  return store.invitations
+    .filter((i) => i.organizationId === organizationId && !i.accepted_at)
+    .sort((a, b) => b.created_at.localeCompare(a.created_at))
+    .map(({ id, email, role, token, created_at, expires_at }) => ({
+      id,
+      email,
+      role,
+      token,
+      created_at,
+      expires_at,
+    }));
+}
+
+export function mockCreateInvitation(organizationId: string, email: string, role: UserRole) {
+  store.invitations = store.invitations.filter(
+    (i) => !(i.organizationId === organizationId && !i.accepted_at && sameEmail(i.email, email)),
+  );
+  const now = new Date();
+  const invitation: MockInvitation = {
+    id: crypto.randomUUID(),
+    organizationId,
+    email,
+    role,
+    token: crypto.randomUUID().replaceAll("-", ""),
+    created_at: now.toISOString(),
+    expires_at: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+    accepted_at: null,
+  };
+  store.invitations.push(invitation);
+  return invitation.token;
+}
+
+export function mockDeleteInvitation(organizationId: string, id: string) {
+  store.invitations = store.invitations.filter(
+    (i) => !(i.id === id && i.organizationId === organizationId),
+  );
+}
+
+export function mockSetMemberRole(
+  organizationId: string,
+  userId: string,
+  role: UserRole,
+): string | null {
+  const account = store.accounts.find(
+    (a) => a.id === userId && a.organizationId === organizationId,
+  );
+  if (!account) return "メンバーが見つかりません";
+  const otherAdmins = store.accounts.some(
+    (a) => a.organizationId === organizationId && a.role === "admin" && a.id !== userId,
+  );
+  if (role !== "admin" && !otherAdmins) return "組織には管理ユーザが 1 人以上必要です";
+  account.role = role;
+  return null;
+}

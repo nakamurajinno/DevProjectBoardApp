@@ -18,6 +18,7 @@ const INITIAL_VALUES = {
 export function ProjectCreateForm() {
   const [values, setValues] = useState(INITIAL_VALUES);
   const [errors, setErrors] = useState<ProjectFieldErrors>({});
+  const [message, setMessage] = useState<string>();
   const [pending, startTransition] = useTransition();
   const nameRef = useRef<HTMLInputElement>(null);
 
@@ -28,6 +29,7 @@ export function ProjectCreateForm() {
     return () => {
       setValues(INITIAL_VALUES);
       setErrors({});
+      setMessage(undefined);
     };
   }, []);
 
@@ -39,6 +41,7 @@ export function ProjectCreateForm() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
+    setMessage(undefined);
     startTransition(async () => {
       const result = await createProject({
         ...values,
@@ -49,11 +52,17 @@ export function ProjectCreateForm() {
         links: [],
       });
       if (result?.errors) setErrors(result.errors);
+      if (result?.message) setMessage(result.message);
     });
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+      {message && (
+        <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-xs text-red-600">
+          {message}
+        </p>
+      )}
       <Field label="アプリ名" htmlFor="new-name" error={errors.name}>
         <input
           id="new-name"

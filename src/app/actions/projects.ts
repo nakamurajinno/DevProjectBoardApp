@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { FORBIDDEN_MESSAGE, requireEditor } from "@/lib/auth/session";
 import { activityLogRepository, projectRepository } from "@/lib/repositories";
 import { validateActivityLogInput } from "@/lib/validation/activityLog";
 import {
@@ -22,10 +23,13 @@ export type ActivityLogChanges = {
 export async function createProject(
   input: unknown,
 ): Promise<ProjectActionResult> {
+  const user = await requireEditor();
+  if (!user) return { errors: {}, message: FORBIDDEN_MESSAGE };
+
   const result = validateProjectInput(input);
   if (!result.ok) return { errors: result.errors };
 
-  await projectRepository.create(result.data);
+  await projectRepository.create(user.organizationId, result.data);
   revalidatePath("/", "layout");
   redirect("/");
 }
@@ -35,6 +39,9 @@ export async function updateProject(
   input: unknown,
   logChanges: ActivityLogChanges = { updated: [], deleted: [] },
 ): Promise<ProjectActionResult> {
+  const user = await requireEditor();
+  if (!user) return { errors: {}, message: FORBIDDEN_MESSAGE };
+
   const result = validateProjectInput(input);
   if (!result.ok) return { errors: result.errors };
 
@@ -47,20 +54,23 @@ export async function updateProject(
     logUpdates.push({ id: logId, data: log.data });
   }
 
-  const existing = await projectRepository.get(id);
+  const existing = await projectRepository.get(user.organizationId, id);
   if (!existing) redirect("/");
 
   for (const { id: logId, data } of logUpdates)
-    await activityLogRepository.update(logId, data);
+    await activityLogRepository.update(user.organizationId, logId, data);
   for (const logId of logChanges.deleted)
-    await activityLogRepository.delete(logId, id);
-  await projectRepository.update(id, result.data);
+    await activityLogRepository.delete(user.organizationId, logId, id);
+  await projectRepository.update(user.organizationId, id, result.data);
   revalidatePath("/", "layout");
   redirect(`/projects/${id}`);
 }
 
-export async function deleteProject(id: string) {
-  await projectRepository.delete(id);
+export async function deleteProject(id: string): Promise<ProjectActionResult> {
+  const user = await requireEditor();
+  if (!user) return { errors: {}, message: FORBIDDEN_MESSAGE };
+
+  await projectRepository.delete(user.organizationId, id);
   revalidatePath("/", "layout");
   redirect("/");
 }

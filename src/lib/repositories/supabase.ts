@@ -40,33 +40,35 @@ function toRow(input: ProjectInput) {
 }
 
 export const supabaseProjectRepository: ProjectRepository = {
-  async list() {
+  async list(orgId) {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("projects_with_progress")
       .select("*")
+      .eq("organization_id", orgId)
       .order("created_at", { ascending: true });
     if (error) throw error;
     return data.map(toProject);
   },
 
-  async get(id) {
+  async get(orgId, id) {
     if (!UUID_RE.test(id)) return null;
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("projects_with_progress")
       .select("*")
+      .eq("organization_id", orgId)
       .eq("id", id)
       .maybeSingle();
     if (error) throw error;
     return data ? toProject(data) : null;
   },
 
-  async create(input) {
+  async create(orgId, input) {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("projects")
-      .insert(toRow(input))
+      .insert({ ...toRow(input), organization_id: orgId })
       .select("*")
       .single();
     if (error) throw error;
@@ -74,39 +76,45 @@ export const supabaseProjectRepository: ProjectRepository = {
     return toProject({ ...data, actual_hours: 0 });
   },
 
-  async update(id, input) {
+  async update(orgId, id, input) {
     if (!UUID_RE.test(id)) throw new Error(`Project not found: ${id}`);
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("projects")
       .update(toRow(input))
+      .eq("organization_id", orgId)
       .eq("id", id)
       .select("id")
       .maybeSingle();
     if (error) throw error;
     if (!data) throw new Error(`Project not found: ${id}`);
 
-    const project = await this.get(id);
+    const project = await this.get(orgId, id);
     if (!project) throw new Error(`Project not found: ${id}`);
     return project;
   },
 
-  async delete(id) {
+  async delete(orgId, id) {
     if (!UUID_RE.test(id)) return;
     const supabase = await createClient();
     // 活動ログは外部キーの on delete cascade で一緒に削除される
-    const { error } = await supabase.from("projects").delete().eq("id", id);
+    const { error } = await supabase
+      .from("projects")
+      .delete()
+      .eq("organization_id", orgId)
+      .eq("id", id);
     if (error) throw error;
   },
 };
 
 export const supabaseActivityLogRepository: ActivityLogRepository = {
-  async listByProject(projectId) {
+  async listByProject(orgId, projectId) {
     if (!UUID_RE.test(projectId)) return [];
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("activity_logs")
       .select("*")
+      .eq("organization_id", orgId)
       .eq("project_id", projectId)
       .order("worked_on", { ascending: false })
       .order("created_at", { ascending: false });
@@ -114,26 +122,28 @@ export const supabaseActivityLogRepository: ActivityLogRepository = {
     return data.map(toActivityLog);
   },
 
-  async create(input) {
+  async create(orgId, input) {
     if (!UUID_RE.test(input.project_id))
       throw new Error(`Project not found: ${input.project_id}`);
     const supabase = await createClient();
+    // organization_id は DB のトリガーでプロジェクトと同じ組織が設定される (RLS で自組織か検証される)
     const { data, error } = await supabase
       .from("activity_logs")
-      .insert(input)
+      .insert({ ...input, organization_id: orgId })
       .select("*")
       .single();
     if (error) throw error;
     return toActivityLog(data);
   },
 
-  async update(id, { project_id, ...values }) {
+  async update(orgId, id, { project_id, ...values }) {
     if (!UUID_RE.test(id) || !UUID_RE.test(project_id))
       throw new Error(`Activity log not found: ${id}`);
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("activity_logs")
       .update(values)
+      .eq("organization_id", orgId)
       .eq("id", id)
       .eq("project_id", project_id)
       .select("*")
@@ -142,13 +152,14 @@ export const supabaseActivityLogRepository: ActivityLogRepository = {
     if (!data) throw new Error(`Activity log not found: ${id}`);
     return toActivityLog(data);
   },
-  async delete(id, projectId) {
+  async delete(orgId, id, projectId) {
     if (!UUID_RE.test(id) || !UUID_RE.test(projectId))
       throw new Error(`Activity log not found: ${id}`);
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("activity_logs")
       .delete()
+      .eq("organization_id", orgId)
       .eq("id", id)
       .eq("project_id", projectId)
       .select("id")

@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { FORBIDDEN_MESSAGE, requireEditor } from "@/lib/auth/session";
 import { activityLogRepository, projectRepository } from "@/lib/repositories";
 import {
   validateActivityLogInput,
@@ -14,15 +15,21 @@ export type ActivityLogActionResult =
 export async function createActivityLog(
   input: unknown,
 ): Promise<ActivityLogActionResult> {
+  const user = await requireEditor();
+  if (!user) return { ok: false, message: FORBIDDEN_MESSAGE };
+
   const result = validateActivityLogInput(input);
   if (!result.ok) return { ok: false, errors: result.errors };
 
   try {
-    const project = await projectRepository.get(result.data.project_id);
+    const project = await projectRepository.get(
+      user.organizationId,
+      result.data.project_id,
+    );
     if (!project)
       return { ok: false, message: "対象のプロジェクトが見つかりません" };
 
-    await activityLogRepository.create(result.data);
+    await activityLogRepository.create(user.organizationId, result.data);
   } catch (error) {
     console.error("Failed to create activity log", error);
     return {

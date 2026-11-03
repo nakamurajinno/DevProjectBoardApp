@@ -1,9 +1,12 @@
 -- 動作確認用のサンプルデータ (任意)。マイグレーション適用後に実行する。
+-- 最も古い組織 (先にアカウント登録して作成しておく) にプロジェクトを登録する。
+-- 活動ログの organization_id はトリガーでプロジェクトと同じ組織が設定される。
 
 insert into public.projects
-  (id, status, name, summary, category, planned_hours, tech_stack, links, scope_step1, scope_step2)
+  (organization_id, id, status, name, summary, category, planned_hours, tech_stack, links, scope_step1, scope_step2)
 values
   (
+    (select id from public.organizations order by created_at limit 1),
     '00000000-0000-0000-0000-000000000001',
     'in_progress',
     '個人開発進捗管理アプリ',
@@ -19,6 +22,7 @@ values
     E'・日報入力/参照\n・ユーザー/グループ認証'
   ),
   (
+    (select id from public.organizations order by created_at limit 1),
     '00000000-0000-0000-0000-000000000002',
     'not_started',
     '家計簿スマホアプリ',

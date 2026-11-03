@@ -23,7 +23,10 @@ export function RowActions({ project }: { project: Pick<Project, "id" | "name"> 
   const handleDelete = () => {
     setOpen(false);
     if (!confirm(`「${project.name}」を削除しますか？`)) return;
-    startTransition(() => deleteProject(project.id));
+    startTransition(async () => {
+      const result = await deleteProject(project.id);
+      if (result?.message) alert(result.message);
+    });
   };
 
   // 行 (tr.group) のホバー / フォーカス時のみ表示する。メニュー展開中とホバー不可端末では常に表示。

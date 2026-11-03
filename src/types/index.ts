@@ -22,6 +22,7 @@ export type Project = {
   links: ProjectLink[];
   scope_step1: string;
   scope_step2: string;
+  organization_id: string;
   created_at: string;
   updated_at: string;
 };
@@ -32,6 +33,7 @@ export type ActivityLog = {
   worked_on: string; // YYYY-MM-DD
   hours: number;
   content: string;
+  organization_id: string;
   created_at: string;
 };
 
@@ -60,3 +62,43 @@ export type ActivityLogInput = Pick<
   ActivityLog,
   "project_id" | "worked_on" | "hours" | "content"
 >;
+
+// ユーザーの権限 (所属組織内でのロール)。
+// viewer: 参照ユーザ / editor: 一般ユーザ / admin: 管理ユーザ (一般ユーザ + メンバー招待・ロール変更)
+export type UserRole = "viewer" | "editor" | "admin";
+
+// ログイン中のユーザー。クライアントへ渡してよい項目だけを持つ。
+export type AppUser = {
+  id: string;
+  name: string;
+  email: string | null;
+  role: UserRole;
+  organizationId: string;
+  organizationName: string;
+};
+
+// 組織のメンバー (組織設定画面の一覧用)
+export type OrganizationMember = {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  created_at: string;
+};
+
+// 未使用の招待
+export type OrganizationInvitation = {
+  id: string;
+  email: string;
+  role: UserRole;
+  token: string;
+  created_at: string;
+  expires_at: string;
+};
+
+// 招待コードから分かる招待内容 (サインアップ画面用)
+export type InvitationInfo = {
+  organizationName: string;
+  email: string;
+  role: UserRole;
+};

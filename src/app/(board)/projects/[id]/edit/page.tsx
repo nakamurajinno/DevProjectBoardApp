@@ -1,7 +1,13 @@
 import { Suspense } from "react";
-import { DrawerLoading, DrawerNotFound } from "@/components/board/DrawerStates";
+import {
+  DrawerForbidden,
+  DrawerLoading,
+  DrawerNotFound,
+} from "@/components/board/DrawerStates";
 import { ProjectEditPanel } from "@/components/board/ProjectEditPanel";
 import { Drawer } from "@/components/ui/Overlay";
+import { canEdit } from "@/lib/auth/roles";
+import { getCurrentUser } from "@/lib/auth/session";
 import { getActivityLogs, getProject } from "@/lib/data/projects";
 
 export default function ProjectEditPage({
@@ -22,6 +28,10 @@ async function ProjectEdit({
   params: PageProps<"/projects/[id]/edit">["params"];
 }) {
   const { id } = await params;
+  // URL を直接開いた場合も、参照ユーザの権限では編集フォームを表示しない
+  const user = await getCurrentUser();
+  if (!canEdit(user?.role)) return <DrawerForbidden />;
+
   const [project, logs] = await Promise.all([
     getProject(id),
     getActivityLogs(id),

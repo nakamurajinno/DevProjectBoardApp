@@ -73,10 +73,12 @@ export function Modal({
 export function DialogModal({
   title,
   onClose,
+  widthClass,
   children,
 }: {
   title: string;
   onClose: () => void;
+  widthClass?: string;
   children: ReactNode;
 }) {
   useEffect(() => {
@@ -88,7 +90,7 @@ export function DialogModal({
   }, [onClose]);
 
   return createPortal(
-    <ModalFrame title={title} onClose={onClose}>
+    <ModalFrame title={title} onClose={onClose} widthClass={widthClass}>
       {children}
     </ModalFrame>,
     document.body,
@@ -98,10 +100,12 @@ export function DialogModal({
 function ModalFrame({
   title,
   onClose,
+  widthClass = "max-w-2xl",
   children,
 }: {
   title: string;
   onClose: () => void;
+  widthClass?: string;
   children: ReactNode;
 }) {
   const titleId = useId();
@@ -112,7 +116,7 @@ function ModalFrame({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="relative w-full max-w-2xl overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl"
+        className={`relative w-full ${widthClass} overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl`}
       >
         <h2 id={titleId} className="border-b border-slate-100 px-6 py-4 text-sm font-semibold text-slate-900">
           {title}

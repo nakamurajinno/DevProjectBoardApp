@@ -1,6 +1,5 @@
-import { Plus } from "lucide-react";
-import Link from "next/link";
 import { Suspense } from "react";
+import { AddProjectButton } from "@/components/board/AddProjectButton";
 import { DetailTabsReset } from "@/components/board/DetailTabs";
 import { Header } from "@/components/board/Header";
 import {
@@ -15,15 +14,11 @@ export default function BoardLayout({ children }: LayoutProps<"/">) {
     <>
       <Header />
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6">
-        <div className="mb-5 flex justify-end">
-          <Link
-            href="/projects/new"
-            scroll={false}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-primary-hover"
-          >
-            <Plus className="size-4" aria-hidden />
-            Add Project
-          </Link>
+        <div className="mb-5 flex min-h-9 justify-end">
+          {/* 権限によって表示が変わるため Suspense で囲む */}
+          <Suspense>
+            <AddProjectButton />
+          </Suspense>
         </div>
         <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
           <Suspense fallback={<ProjectTableSkeleton />}>
