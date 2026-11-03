@@ -1,12 +1,21 @@
 import { canEdit } from "@/lib/auth/roles";
 import { getCurrentUser } from "@/lib/auth/session";
+import { getMembers } from "@/lib/data/organization";
 import { getProjects } from "@/lib/data/projects";
 import { ProjectTableHead, TABLE_HEADERS } from "./ProjectTableHead";
 import { ProjectTableView, tableContainerClass } from "./ProjectTableView";
 
 export async function ProjectTable() {
-  const [projects, user] = await Promise.all([getProjects(), getCurrentUser()]);
-  return <ProjectTableView projects={projects} canEdit={canEdit(user?.role)} />;
+  const [projects, user, members] = await Promise.all([
+    getProjects(),
+    getCurrentUser(),
+    getMembers(),
+  ]);
+  // 担当者フィルタの選択肢。クライアントへはメールアドレスを渡さない
+  const assignees = members.map(({ id, name }) => ({ id, name }));
+  return (
+    <ProjectTableView projects={projects} members={assignees} canEdit={canEdit(user?.role)} />
+  );
 }
 
 export function ProjectTableSkeleton() {

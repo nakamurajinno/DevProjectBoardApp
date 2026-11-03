@@ -3,10 +3,13 @@
 import { UserRound } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import { useDeferredValue, useMemo, useState } from "react";
 import { Tooltip } from "@/components/ui/Floating";
 import { categoryLabel } from "@/lib/constants";
+import { EMPTY_FILTER, filterProjects, isFilterActive } from "@/lib/projectFilter";
 import type { ProjectWithProgress } from "@/types";
 import { HoursProgress } from "./HoursProgress";
+import { type AssigneeOption, ProjectSearchBar } from "./ProjectSearchBar";
 import { ProjectTableHead, TABLE_HEADERS } from "./ProjectTableHead";
 import { RowActions } from "./RowActions";
 import { StatusBadge } from "./StatusBadge";
@@ -14,7 +17,8 @@ import { StatusBadge } from "./StatusBadge";
 export const tableContainerClass =
   "hidden overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm lg:block";
 
-function emptyMessage(canEdit: boolean) {
+function emptyMessage(canEdit: boolean, filtered: boolean) {
+  if (filtered) return "該当するタスクが見つかりません。検索条件を変更してください。";
   return canEdit
     ? "プロジェクトがありません。「+ Add Project」から登録してください。"
     : "プロジェクトがありません。";
@@ -23,27 +27,51 @@ function emptyMessage(canEdit: boolean) {
 // lg 未満 (スマートフォン・タブレット) はカード一覧、lg 以上はテーブルで表示する。
 // canEdit が false (参照ユーザ) のときは行の操作ボタン (活動ログ入力・編集・削除) を表示しない
 export function ProjectTableView({
-  projects,
+  projects: allProjects,
+  members,
   canEdit,
 }: {
   projects: ProjectWithProgress[];
+  members: AssigneeOption[];
   canEdit: boolean;
 }) {
   const router = useRouter();
   const params = useParams<{ id?: string }>();
   const open = (id: string) => router.push(`/projects/${id}`);
 
+  // 検索条件はローカル state で持ち、入力のたびに一覧を絞り込む
+  const [filter, setFilter] = useState(EMPTY_FILTER);
+  const deferredFilter = useDeferredValue(filter);
+  const filtered = isFilterActive(deferredFilter);
+  // No. は絞り込み前の並び順の番号を維持する
+  const numbered = useMemo(
+    () => allProjects.map((project, index) => ({ project, no: index + 1 })),
+    [allProjects],
+  );
+  const rows = useMemo(() => {
+    const matched = new Set(filterProjects(allProjects, deferredFilter).map((p) => p.id));
+    return numbered.filter(({ project }) => matched.has(project.id));
+  }, [allProjects, numbered, deferredFilter]);
+
   return (
     <>
+      <ProjectSearchBar
+        filter={filter}
+        onChange={setFilter}
+        members={members}
+        total={allProjects.length}
+        shown={rows.length}
+      />
+
       {/* モバイル: カード一覧 */}
       <div className="lg:hidden">
-        {projects.length === 0 ? (
+        {rows.length === 0 ? (
           <p className="rounded-xl border border-slate-200 bg-white px-4 py-12 text-center text-sm text-slate-500 shadow-sm">
-            {emptyMessage(canEdit)}
+            {emptyMessage(canEdit, filtered)}
           </p>
         ) : (
           <ul className="grid gap-3 sm:grid-cols-2">
-            {projects.map((project, index) => (
+            {rows.map(({ project, no }) => (
               <li key={project.id}>
                 <article
                   onClick={() => open(project.id)}
@@ -56,7 +84,7 @@ export function ProjectTableView({
                   <div className="flex items-start gap-3">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs tabular-nums text-slate-400">No.{index + 1}</span>
+                        <span className="text-xs tabular-nums text-slate-400">No.{no}</span>
                         <StatusBadge status={project.status} />
                       </div>
                       <h2 className="mt-1.5 truncate text-base font-medium text-slate-900">
@@ -114,14 +142,14 @@ export function ProjectTableView({
           </colgroup>
           <ProjectTableHead />
           <tbody>
-            {projects.length === 0 && (
+            {rows.length === 0 && (
               <tr>
                 <td colSpan={TABLE_HEADERS.length} className="py-16 text-center text-sm text-slate-500">
-                  {emptyMessage(canEdit)}
+                  {emptyMessage(canEdit, filtered)}
                 </td>
               </tr>
             )}
-            {projects.map((project, index) => (
+            {rows.map(({ project, no }) => (
               <tr
                 key={project.id}
                 onClick={() => open(project.id)}
@@ -129,7 +157,7 @@ export function ProjectTableView({
                   params.id === project.id ? "bg-row-active" : ""
                 }`}
               >
-                <td className="px-4 py-4 text-center text-xs tabular-nums text-slate-400">{index + 1}</td>
+                <td className="px-4 py-4 text-center text-xs tabular-nums text-slate-400">{no}</td>
                 <td className="px-4 py-4 text-center">
                   <StatusBadge status={project.status} />
                 </td>
