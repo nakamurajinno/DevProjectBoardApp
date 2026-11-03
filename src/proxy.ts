@@ -11,10 +11,11 @@ const GUEST_ONLY_PATHS = ["/login", "/signup"];
 // 楽観的なチェックとして、未ログインならログイン画面へ、ログイン済みでログイン・登録画面を開いたら一覧へ移動する。
 // 権限の確認は Server Action / Server Component (src/lib/auth/session.ts) と RLS で行う。
 export async function proxy(request: NextRequest) {
-  const { response, authenticated } = isMockAuth
+  const { response, authenticated, invitationPending } = isMockAuth
     ? {
         response: NextResponse.next({ request }),
         authenticated: !!findMockUser(request.cookies.get(MOCK_SESSION_COOKIE)?.value),
+        invitationPending: false,
       }
     : await updateSession(request);
 
@@ -23,6 +24,9 @@ export async function proxy(request: NextRequest) {
     (path) => pathname === path || pathname.startsWith(`${path}/`),
   );
 
+  // 招待の登録完了前のユーザーは、登録完了画面以外を開けない (メンバーではないため)
+  if (invitationPending && !pathname.startsWith("/invite") && !pathname.startsWith("/auth"))
+    return redirectKeepingCookies("/invite/accept", request, response);
   if (!authenticated && !isPublic) return redirectKeepingCookies("/login", request, response);
   if (authenticated && GUEST_ONLY_PATHS.includes(pathname)) return redirectKeepingCookies("/", request, response);
   return response;

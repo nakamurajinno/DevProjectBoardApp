@@ -68,10 +68,7 @@ export function validateSignupInput(input: SignupInput): SignupFieldErrors {
   return errors;
 }
 
-export function readInviteForm(formData: FormData): { email: string; role: UserRole | null } {
+export function readInviteForm(formData: FormData): { role: UserRole | null } {
   const role = formData.get("role");
-  return {
-    email: String(formData.get("email") ?? "").trim(),
-    role: isUserRole(role) ? role : null,
-  };
+  return { role: isUserRole(role) ? role : null };
 }

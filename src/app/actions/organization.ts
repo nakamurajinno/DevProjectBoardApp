@@ -2,160 +2,140 @@
 
 import { revalidatePath } from "next/cache";
 import { isMockAuth } from "@/lib/auth/config";
-import {
-  mockCreateInvitation,
-  mockDeleteInvitation,
-  mockEmailExists,
-  mockSetMemberRole,
-} from "@/lib/auth/mock";
-import { isUserRole } from "@/lib/auth/roles";
+import { mockCreateInvitation, mockSetMemberRole } from "@/lib/auth/mock";
+import { isUserRole, roleOption } from "@/lib/auth/roles";
+import { getMembers } from "@/lib/data/organization";
 import { ADMIN_ONLY_MESSAGE, requireAdmin } from "@/lib/auth/session";
 import { getOrigin } from "@/lib/request";
-import { createAdminClient, isEmailRegistered } from "@/lib/supabase/admin";
+import { logSupabaseError } from "@/lib/supabase/errors";
 import { createClient } from "@/lib/supabase/server";
-import { EMAIL_RE, readInviteForm } from "@/lib/validation/auth";
-
-const ALREADY_MEMBER_MESSAGE =
-  "このメールアドレスは既に登録されています（ユーザーは 1 つの組織にのみ所属できます）";
+import { readInviteForm } from "@/lib/validation/auth";
+import type { UserRole } from "@/types";
 
 export type InviteState =
   | {
       ok: boolean;
       message: string;
-      // メールを送れなかった場合などに、管理ユーザが手動で共有する招待リンク
+      // 発行した招待リンク。管理ユーザがコピーして招待相手に共有する
       inviteUrl?: string;
+      // 失敗時の Supabase のエラー詳細 (どの処理・テーブルで、どのエラーコードか)。管理ユーザのみに表示される
+      errorDetails?: string[];
     }
   | undefined;
 
-// 管理ユーザがメールアドレスとロールを指定して組織へ招待する。
-// 1. organization_invitations に招待を作成 (招待コード = token)
-// 2. Supabase Auth の inviteUserByEmail で招待メールを送信 (メタデータに招待コードを付ける)
-//    → DB のトリガーがユーザー作成時に招待を使用済みにし、組織のメンバーとして登録する
-//    → 招待されたユーザーはメール内のリンクからパスワードを設定して登録を完了する
-// メールを送れない場合 (service_role キー未設定・送信エラー) は招待リンクを返し、
-// 招待されたユーザーはサインアップ画面で招待コードを入力して登録する。
+// 管理ユーザがロールを指定して招待リンクを発行する (特定のメールアドレスには紐づけない)。
+// organization_invitations に招待 (招待コード = token、ロール、有効期限、email = null) を作成し、
+// 招待リンク (/signup?invite=<招待コード>) を返す。管理ユーザがリンクをコピーして招待相手に共有する。
+// リンクを開いたユーザーが任意のメールアドレスでサインアップすると、DB のトリガー (handle_new_user) により
+// 招待のロールで組織のメンバーになり、招待が使用済み (accepted_at) になる (1 リンク = 1 人)。
 export async function inviteMember(_prev: InviteState, formData: FormData): Promise<InviteState> {
   const user = await requireAdmin();
   if (!user) return { ok: false, message: ADMIN_ONLY_MESSAGE };
 
-  const { email: rawEmail, role } = readInviteForm(formData);
-  const email = rawEmail.toLowerCase();
-  if (!EMAIL_RE.test(email)) return { ok: false, message: "メールアドレスの形式が正しくありません" };
+  const { role } = readInviteForm(formData);
   if (!role) return { ok: false, message: "ロールを選択してください" };
 
   const origin = await getOrigin();
   const signupUrl = (token: string) => `${origin}/signup?invite=${token}`;
+  const successMessage = `「${roleOption(role).label}」の招待リンクを発行しました。下記のリンクをコピーして招待相手に共有してください（1 回のみ使用可・有効期限 7 日）`;
 
   if (isMockAuth) {
-    if (mockEmailExists(email)) return { ok: false, message: ALREADY_MEMBER_MESSAGE };
-    const token = mockCreateInvitation(user.organizationId, email, role);
-    revalidatePath("/organization");
-    return {
-      ok: true,
-      message: "招待を作成しました（モックモードではメールは送信されません）。下記の招待リンクを共有してください",
-      inviteUrl: signupUrl(token),
-    };
+    const token = mockCreateInvitation(user.organizationId, role);
+    return { ok: true, message: successMessage, inviteUrl: signupUrl(token) };
   }
-
-  if (await isEmailRegistered(email)) return { ok: false, message: ALREADY_MEMBER_MESSAGE };
 
   const supabase = await createClient();
-  // 同じメールアドレスへの未使用の招待は作り直す (ロール変更・有効期限の延長)
-  const { error: deleteError } = await supabase
+  const { data, error } = await supabase
     .from("organization_invitations")
-    .delete()
-    .eq("organization_id", user.organizationId)
-    .eq("email", email)
-    .is("accepted_at", null);
-  if (deleteError) console.error("Failed to delete old invitation", deleteError);
-
-  const { data: invitation, error } = await supabase
-    .from("organization_invitations")
-    .insert({ organization_id: user.organizationId, email, role })
+    .insert({ organization_id: user.organizationId, role })
     .select("token")
     .single();
-  if (error || !invitation) {
-    console.error("Failed to create invitation", error);
-    return { ok: false, message: "招待の作成に失敗しました。時間をおいて再度お試しください" };
-  }
-
-  revalidatePath("/organization");
-
-  const admin = createAdminClient();
-  if (!admin) {
+  if (error || !data) {
     return {
-      ok: true,
-      message:
-        "招待を作成しました。招待メールの送信には SUPABASE_SERVICE_ROLE_KEY の設定が必要なため、下記の招待リンクを共有してください",
-      inviteUrl: signupUrl(invitation.token),
+      ok: false,
+      message: "招待リンクの発行に失敗しました。下記のエラー詳細を確認してください",
+      errorDetails: [
+        logSupabaseError("inviteMember", "insert organization_invitations", error),
+        // email 列が NOT NULL のまま (マイグレーション未適用) の場合
+        ...(error?.code === "23502"
+          ? ["supabase/migrations/20261103700000_generic_invitation_links.sql を適用してください"]
+          : []),
+      ],
     };
   }
 
-  const { error: mailError } = await admin.auth.admin.inviteUserByEmail(email, {
-    redirectTo: `${origin}/invite/accept`,
-    data: { invitation_token: invitation.token },
-  });
-  if (mailError) {
-    console.error("Failed to send invitation email", mailError);
-    return {
-      ok: true,
-      message: "招待メールを送信できませんでした。下記の招待リンクを共有してください",
-      inviteUrl: signupUrl(invitation.token),
-    };
-  }
-
-  return { ok: true, message: `${email} に招待メールを送信しました` };
+  return { ok: true, message: successMessage, inviteUrl: signupUrl(data.token) };
 }
 
 export type OrganizationActionResult = { ok: true } | { ok: false; message: string };
 
-export async function revokeInvitation(id: string): Promise<OrganizationActionResult> {
-  const user = await requireAdmin();
-  if (!user) return { ok: false, message: ADMIN_ONLY_MESSAGE };
+export type MemberRoleChange = { userId: string; role: UserRole };
 
-  if (isMockAuth) {
-    mockDeleteInvitation(user.organizationId, id);
-  } else {
-    const supabase = await createClient();
-    const { error } = await supabase
-      .from("organization_invitations")
-      .delete()
-      .eq("organization_id", user.organizationId)
-      .eq("id", id);
-    if (error) {
-      console.error("Failed to revoke invitation", error);
-      return { ok: false, message: "招待の取り消しに失敗しました" };
-    }
-  }
+const LAST_ADMIN_MESSAGE = "組織には管理ユーザが 1 人以上必要です";
 
-  revalidatePath("/organization");
-  return { ok: true };
+// 1 人分のロールを更新する。失敗時はエラーメッセージを返す
+async function setMemberRole(
+  organizationId: string,
+  userId: string,
+  role: UserRole,
+): Promise<string | null> {
+  if (isMockAuth) return mockSetMemberRole(organizationId, userId, role);
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_member_role", { p_user_id: userId, p_role: role });
+  if (!error) return null;
+  console.error("Failed to change member role", error);
+  return error.message.includes("at least one admin") ? LAST_ADMIN_MESSAGE : "ロールの変更に失敗しました";
 }
 
-export async function changeMemberRole(
-  userId: string,
-  role: unknown,
-): Promise<OrganizationActionResult> {
+// 「変更を保存」で、変更のあったメンバーのロールをまとめて更新する。
+// 途中で失敗した場合は、それまでに更新したメンバーを元のロールに戻し、全体を未保存の状態にする。
+export async function changeMemberRoles(changes: unknown): Promise<OrganizationActionResult> {
   const user = await requireAdmin();
   if (!user) return { ok: false, message: ADMIN_ONLY_MESSAGE };
-  if (!isUserRole(role)) return { ok: false, message: "ロールが正しくありません" };
 
-  const LAST_ADMIN_MESSAGE = "組織には管理ユーザが 1 人以上必要です";
-  if (isMockAuth) {
-    const error = mockSetMemberRole(user.organizationId, userId, role);
-    if (error) return { ok: false, message: error };
-  } else {
-    const supabase = await createClient();
-    const { error } = await supabase.rpc("set_member_role", { p_user_id: userId, p_role: role });
+  if (
+    !Array.isArray(changes) ||
+    changes.length === 0 ||
+    !changes.every(
+      (c) => c && typeof c === "object" && typeof c.userId === "string" && isUserRole(c.role),
+    )
+  ) {
+    return { ok: false, message: "ロールの変更内容が正しくありません" };
+  }
+  const list = changes as MemberRoleChange[];
+  if (new Set(list.map((c) => c.userId)).size !== list.length) {
+    return { ok: false, message: "ロールの変更内容が正しくありません" };
+  }
+
+  // 変更前のロール (失敗時の巻き戻し・管理ユーザ数の事前チェック用)
+  const members = await getMembers();
+  const before = new Map(members.map((m) => [m.id, m.role]));
+  if (list.some((c) => !before.has(c.userId))) return { ok: false, message: "メンバーが見つかりません" };
+
+  const after = new Map(before);
+  for (const c of list) after.set(c.userId, c.role);
+  if (![...after.values()].includes("admin")) return { ok: false, message: LAST_ADMIN_MESSAGE };
+
+  // 適用順: 管理ユーザへの昇格 → その他 → 自分自身 (最後)。
+  // 先に降格すると一時的に管理ユーザが 0 人になる / 自分を先に降格すると以降の変更権限を失うため
+  const order = (c: MemberRoleChange) => (c.userId === user.id ? 2 : c.role === "admin" ? 0 : 1);
+  const sorted = [...list].sort((a, b) => order(a) - order(b));
+
+  const applied: MemberRoleChange[] = [];
+  for (const c of sorted) {
+    const error = await setMemberRole(user.organizationId, c.userId, c.role);
     if (error) {
-      console.error("Failed to change member role", error);
-      return {
-        ok: false,
-        message: error.message.includes("at least one admin")
-          ? LAST_ADMIN_MESSAGE
-          : "ロールの変更に失敗しました",
-      };
+      // 巻き戻しは逆順に行う (降格前の状態から順に戻せば管理ユーザ 0 人にならない)
+      for (const done of applied.reverse()) {
+        const rollbackError = await setMemberRole(user.organizationId, done.userId, before.get(done.userId)!);
+        if (rollbackError) console.error("Failed to roll back member role", done.userId, rollbackError);
+      }
+      revalidatePath("/", "layout");
+      const name = members.find((m) => m.id === c.userId)?.name ?? "";
+      return { ok: false, message: `${error}${name ? `（${name}）` : ""}。変更は保存されていません` };
     }
+    applied.push(c);
   }
 
   // 自分のロールを変更した場合に備え、ヘッダー・一覧の権限表示も更新する

@@ -38,5 +38,8 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  return { response, authenticated: !!user };
+  // 招待メールのリンクからログインしたが、まだ登録を完了していない (組織に未参加の) ユーザー
+  const invitationPending = user?.user_metadata?.invitation_pending === true;
+
+  return { response, authenticated: !!user, invitationPending };
 }

@@ -18,7 +18,10 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { getInvitationInfo } from "@/lib/data/organization";
 import { getOrigin } from "@/lib/request";
 import {
+  createConfirmedUser,
+  deleteUnjoinedUser,
   findLoginEmailByUsername,
+  isEmailMember,
   isEmailRegistered,
   type EmailLookupResult,
 } from "@/lib/supabase/admin";
@@ -197,15 +200,15 @@ export async function signup(_prev: SignupState, formData: FormData): Promise<Si
   const errors = validateSignupInput(input);
   if (Object.keys(errors).length > 0) return fail({ errors });
 
-  // 既存組織への参加は招待が必須。招待コードとメールアドレスの組み合わせを事前に確認する
+  // 既存組織への参加は招待が必須。招待コード (と、メールアドレス指定の招待ならその組み合わせ) を事前に確認する
   // (DB のトリガーでも同じ検証を行い、不正な登録は拒否される)
+  const invitation = input.mode === "join" ? await getInvitationInfo(input.invitationToken) : null;
   if (input.mode === "join") {
-    const invitation = await getInvitationInfo(input.invitationToken);
     if (!invitation)
       return fail({
         errors: { invitationToken: "招待コードが無効か、有効期限が切れています" },
       });
-    if (invitation.email.toLowerCase() !== input.email.toLowerCase())
+    if (invitation.email && invitation.email.toLowerCase() !== input.email.toLowerCase())
       return fail({
         errors: { email: "招待を受けたメールアドレスで登録してください" },
       });
@@ -231,21 +234,63 @@ export async function signup(_prev: SignupState, formData: FormData): Promise<Si
     redirect("/");
   }
 
+  // 招待メール送信済みで未参加のユーザー (auth.users にのみ存在) が招待コードで登録する場合は、
+  // 招待メールで作成されたユーザーを削除してから登録し直す (メールアドレス指定の招待で、組み合わせは確認済み)
+  if (invitation?.email && (await isEmailMember(input.email)) === false)
+    await deleteUnjoinedUser(input.email);
+
   if (await isEmailRegistered(input.email))
     return fail({ message: ALREADY_REGISTERED_MESSAGE });
 
   const supabase = await createClient({ remember: true });
+
+  // 招待コードでの参加: 確認メールを待たずに登録 → 組織参加 → 自動ログインまで行い、一覧へ遷移する
+  if (input.mode === "join") {
+    const created = await createConfirmedUser({
+      email: input.email,
+      password,
+      metadata: { username: input.username, invitation_token: input.invitationToken },
+    });
+    if (!created.ok) {
+      switch (created.reason) {
+        case "already_registered":
+          return fail({ message: ALREADY_REGISTERED_MESSAGE });
+        case "weak_password":
+          return fail({ errors: { password: "より複雑なパスワードを設定してください" } });
+        case "invitation":
+          return fail({
+            message: `組織への参加に失敗しました。招待コードが無効・期限切れ・使用済みでないか確認してください（${created.error}）`,
+          });
+        case "unavailable":
+          return fail({
+            message: "サーバー設定 (SUPABASE_SERVICE_ROLE_KEY) が不足しているため、招待コードで登録できません",
+          });
+        default:
+          return fail({ message: `登録に失敗しました（${created.error}）` });
+      }
+    }
+
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: input.email,
+      password,
+    });
+    if (signInError) {
+      console.error("Failed to sign in after signup", signInError);
+      return fail({
+        message: "アカウントは登録されましたが、自動ログインに失敗しました。ログイン画面からログインしてください",
+      });
+    }
+    redirect("/");
+  }
+
   const { data, error } = await supabase.auth.signUp({
     email: input.email,
     password,
     options: {
       // メール確認を有効にしている場合の、確認リンクの戻り先
       emailRedirectTo: `${await getOrigin()}/auth/callback`,
-      // DB のトリガー (public.handle_new_user) がこの値を見て組織の作成 / 招待組織への参加を行う
-      data:
-        input.mode === "create"
-          ? { username: input.username, organization_name: input.organizationName }
-          : { username: input.username, invitation_token: input.invitationToken },
+      // DB のトリガー (public.handle_new_user) がこの値を見て組織を作成する
+      data: { username: input.username, organization_name: input.organizationName },
     },
   });
 
@@ -275,8 +320,11 @@ export async function signup(_prev: SignupState, formData: FormData): Promise<Si
 // ============================================================
 
 export type InviteSessionResult =
-  | { ok: true; email: string; username: string }
+  | { ok: true; email: string; username: string; organizationName?: string }
   | { ok: false; message: string };
+
+const INVITATION_UNAVAILABLE_MESSAGE =
+  "招待が取り消されたか、有効期限が切れています。組織の管理ユーザに再度招待を依頼してください";
 
 // 招待メールのリンクは URL のハッシュ (#access_token=...) でトークンを返すため、
 // ブラウザで読み取ったトークンをサーバーへ渡して認証 Cookie を発行する
@@ -298,21 +346,32 @@ export async function acceptInviteSession(tokens: {
     console.error("Failed to set invite session", error);
     return { ok: false, message: "招待リンクが無効か、有効期限が切れています" };
   }
-  // 招待メール送信時に仮のユーザー名 (メールアドレスの @ より前など) で登録されている
+  // 登録完了 (completeInvitation) 前のため、まだ組織のメンバー (profiles) にはなっていない。
+  // 既にメンバーの場合 (登録完了の再試行) は現在のユーザー名を初期値にする。
   const { data: profile } = await supabase
     .from("profiles")
     .select("username")
     .eq("id", data.user.id)
     .maybeSingle();
-  return { ok: true, email: data.user.email ?? "", username: profile?.username ?? "" };
+  if (profile) return { ok: true, email: data.user.email ?? "", username: profile.username };
+
+  const token = data.user.user_metadata?.invitation_token;
+  const invitation = typeof token === "string" ? await getInvitationInfo(token) : null;
+  if (!invitation) return { ok: false, message: INVITATION_UNAVAILABLE_MESSAGE };
+  return {
+    ok: true,
+    email: data.user.email ?? "",
+    username: "",
+    organizationName: invitation.organizationName,
+  };
 }
 
 export type CompleteInvitationState =
   | { errors?: { password?: string; username?: string }; message?: string }
   | undefined;
 
-// 招待されたユーザーがパスワードとユーザー名を設定して登録を完了する
-// (招待メール送信時点で、招待された組織のメンバーとして登録済み)
+// 招待されたユーザーがパスワードとユーザー名を設定して登録を完了する。
+// この時点で初めて組織のメンバーとして登録され、招待は「招待中」から外れる。
 export async function completeInvitation(
   _prev: CompleteInvitationState,
   formData: FormData,
@@ -333,17 +392,21 @@ export async function completeInvitation(
   } = await supabase.auth.getUser();
   if (!user) return { message: "招待リンクの有効期限が切れています。もう一度招待を依頼してください" };
 
-  // 先にユーザー名を確定する (他のユーザーと重複していればここで弾く)
-  const { error: profileError } = await supabase.rpc("update_my_username", {
+  // 招待を承認して組織のメンバーになる (ユーザー名が他のユーザーと重複していればここで弾く)
+  const { error: acceptError } = await supabase.rpc("accept_my_invitation", {
     p_username: username,
   });
-  if (profileError) {
-    if (profileError.code === "23505") return { errors: { username: USERNAME_TAKEN_MESSAGE } };
-    console.error("Failed to update username", profileError);
+  if (acceptError) {
+    if (acceptError.code === "23505") return { errors: { username: USERNAME_TAKEN_MESSAGE } };
+    if (acceptError.code === "P0002") return { message: INVITATION_UNAVAILABLE_MESSAGE };
+    console.error("Failed to accept invitation", acceptError);
     return { message: "登録に失敗しました。時間をおいて再度お試しください" };
   }
 
-  const { error } = await supabase.auth.updateUser({ password, data: { username } });
+  const { error } = await supabase.auth.updateUser({
+    password,
+    data: { username, invitation_pending: false },
+  });
   if (error) {
     console.error("Failed to set password", error);
     return error.code === "weak_password" || error.code === "same_password"

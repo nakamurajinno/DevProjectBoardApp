@@ -1,7 +1,6 @@
 import type {
   AppUser,
   InvitationInfo,
-  OrganizationInvitation,
   OrganizationMember,
   UserRole,
 } from "@/types";
@@ -26,8 +25,15 @@ type MockAccount = {
   organizationId: string;
   created_at: string;
 };
-type MockInvitation = OrganizationInvitation & {
+type MockInvitation = {
+  id: string;
   organizationId: string;
+  // ロール指定の招待リンクは null (どのメールアドレスでも登録できる)
+  email: string | null;
+  role: UserRole;
+  token: string;
+  created_at: string;
+  expires_at: string;
   accepted_at: string | null;
 };
 type MockAuthStore = {
@@ -163,7 +169,7 @@ export function mockSignUp(input: {
   let role: UserRole;
   if (input.invitationToken) {
     const invitation = findPendingInvitation(input.invitationToken);
-    if (!invitation || !sameEmail(invitation.email, input.email))
+    if (!invitation || (invitation.email && !sameEmail(invitation.email, input.email)))
       return { ok: false, message: "招待コードが無効か、有効期限が切れています" };
     invitation.accepted_at = now;
     organizationId = invitation.organizationId;
@@ -196,29 +202,13 @@ export function mockListMembers(organizationId: string): OrganizationMember[] {
     .map(({ id, name, email, role, created_at }) => ({ id, name, email, role, created_at }));
 }
 
-export function mockListInvitations(organizationId: string): OrganizationInvitation[] {
-  return store.invitations
-    .filter((i) => i.organizationId === organizationId && !i.accepted_at)
-    .sort((a, b) => b.created_at.localeCompare(a.created_at))
-    .map(({ id, email, role, token, created_at, expires_at }) => ({
-      id,
-      email,
-      role,
-      token,
-      created_at,
-      expires_at,
-    }));
-}
-
-export function mockCreateInvitation(organizationId: string, email: string, role: UserRole) {
-  store.invitations = store.invitations.filter(
-    (i) => !(i.organizationId === organizationId && !i.accepted_at && sameEmail(i.email, email)),
-  );
+// ロールを指定した招待リンク (1 回のみ使用可・7 日間有効) を作成し、招待コードを返す
+export function mockCreateInvitation(organizationId: string, role: UserRole) {
   const now = new Date();
   const invitation: MockInvitation = {
     id: crypto.randomUUID(),
     organizationId,
-    email,
+    email: null,
     role,
     token: crypto.randomUUID().replaceAll("-", ""),
     created_at: now.toISOString(),
@@ -227,12 +217,6 @@ export function mockCreateInvitation(organizationId: string, email: string, role
   };
   store.invitations.push(invitation);
   return invitation.token;
-}
-
-export function mockDeleteInvitation(organizationId: string, id: string) {
-  store.invitations = store.invitations.filter(
-    (i) => !(i.id === id && i.organizationId === organizationId),
-  );
 }
 
 export function mockSetMemberRole(

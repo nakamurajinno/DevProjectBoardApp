@@ -177,7 +177,7 @@ export type Database = {
         Row: {
           id: string;
           organization_id: string;
-          email: string;
+          email: string | null;
           role: Database["public"]["Enums"]["user_role"];
           token: string;
           invited_by: string | null;
@@ -189,7 +189,7 @@ export type Database = {
         Insert: {
           id?: string;
           organization_id?: string;
-          email: string;
+          email?: string | null;
           role?: Database["public"]["Enums"]["user_role"];
           token?: string;
           invited_by?: string | null;
@@ -201,7 +201,7 @@ export type Database = {
         Update: {
           id?: string;
           organization_id?: string;
-          email?: string;
+          email?: string | null;
           role?: Database["public"]["Enums"]["user_role"];
           token?: string;
           invited_by?: string | null;
@@ -241,7 +241,7 @@ export type Database = {
         Args: { p_token: string };
         Returns: {
           organization_name: string;
-          email: string;
+          email: string | null;
           role: Database["public"]["Enums"]["user_role"];
           expires_at: string;
         }[];
@@ -255,6 +255,9 @@ export type Database = {
       update_my_username: { Args: { p_username: string }; Returns: undefined };
       get_login_email: { Args: { p_username: string }; Returns: string | null };
       is_username_taken: { Args: { p_username: string }; Returns: boolean };
+      accept_my_invitation: { Args: { p_username: string }; Returns: undefined };
+      find_unjoined_user: { Args: { p_email: string }; Returns: string | null };
+      is_email_member: { Args: { p_email: string }; Returns: boolean };
     };
     Enums: {
       project_status: "not_started" | "in_progress" | "done";

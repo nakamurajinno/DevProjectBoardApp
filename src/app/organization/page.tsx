@@ -4,12 +4,11 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { Header } from "@/components/board/Header";
 import { RoleBadge } from "@/components/board/RoleBadge";
-import { InvitationList } from "@/components/organization/InvitationList";
 import { InviteMemberForm } from "@/components/organization/InviteMemberForm";
 import { MemberList } from "@/components/organization/MemberList";
 import { isAdmin } from "@/lib/auth/roles";
 import { getCurrentUser } from "@/lib/auth/session";
-import { getMembers, getPendingInvitations } from "@/lib/data/organization";
+import { getMembers } from "@/lib/data/organization";
 
 export const metadata: Metadata = {
   title: "組織・メンバー | 個人開発プロジェクト管理ボード",
@@ -40,7 +39,7 @@ async function OrganizationContent() {
   const user = await getCurrentUser();
   if (!user) return null;
   const admin = isAdmin(user.role);
-  const [members, invitations] = await Promise.all([getMembers(), getPendingInvitations()]);
+  const members = await getMembers();
 
   return (
     <>
@@ -63,7 +62,7 @@ async function OrganizationContent() {
       {admin && (
         <Section
           title="メンバーを招待"
-          description="既存の組織への参加には招待が必要です。招待されたユーザーはメール内のリンク（または招待コード）からアカウント登録すると、この組織に自動で所属します。"
+          description="ロールを選んで招待リンクを発行し、招待したい相手に共有してください。リンクを開いたユーザーがメールアドレス・ユーザー名・パスワードを入力してアカウント登録すると、選択したロールでこの組織に自動で所属します。招待リンクは 1 回のみ使用でき、有効期限は 7 日間です。"
         >
           <InviteMemberForm />
         </Section>
@@ -72,12 +71,6 @@ async function OrganizationContent() {
       <Section title={`メンバー（${members.length}人）`}>
         <MemberList members={members} currentUserId={user.id} editable={admin} />
       </Section>
-
-      {admin && (
-        <Section title="招待中" description="まだ登録が完了していない招待です。招待リンクは 7 日間有効です。">
-          <InvitationList invitations={invitations} />
-        </Section>
-      )}
     </>
   );
 }

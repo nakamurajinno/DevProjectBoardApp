@@ -55,8 +55,9 @@ export function SignupForm({
     );
   }
 
-  // 有効な招待リンクから開いた場合は、招待されたメールアドレスで登録させる
-  const lockedEmail = mode === "join" && invitation ? invitation.email : undefined;
+  // 従来のメールアドレス指定の招待から開いた場合のみ、招待されたメールアドレスで登録させる
+  // (ロール指定の招待リンクは任意のメールアドレスで登録できる)
+  const lockedEmail = (mode === "join" && invitation?.email) || undefined;
 
   return (
     <form action={formAction} className="space-y-5" noValidate>
@@ -114,7 +115,7 @@ export function SignupForm({
             <FormAlert>招待リンクが無効か、有効期限が切れています。管理ユーザに再度招待を依頼してください</FormAlert>
           ) : (
             <p className="text-xs leading-relaxed text-slate-500">
-              既存の組織への参加には、組織の管理ユーザからの招待が必要です。招待メールが届いている場合は、メール内のリンクから登録してください。
+              既存の組織への参加には、組織の管理ユーザからの招待が必要です。管理ユーザから共有された招待リンクを開くか、招待コードを入力して登録してください。
             </p>
           )}
           <Field label="招待コード" htmlFor="invitationToken" error={errors.invitationToken}>

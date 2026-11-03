@@ -97,19 +97,10 @@ export type OrganizationMember = {
   created_at: string;
 };
 
-// 未使用の招待
-export type OrganizationInvitation = {
-  id: string;
-  email: string;
-  role: UserRole;
-  token: string;
-  created_at: string;
-  expires_at: string;
-};
-
 // 招待コードから分かる招待内容 (サインアップ画面用)
 export type InvitationInfo = {
   organizationName: string;
-  email: string;
+  // 招待リンク (ロール指定のみ) は null。従来のメールアドレス指定の招待のみ値がある
+  email: string | null;
   role: UserRole;
 };

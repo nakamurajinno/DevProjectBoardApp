@@ -1,18 +1,9 @@
 import { connection } from "next/server";
 import { isMockAuth } from "@/lib/auth/config";
-import {
-  mockGetInvitation,
-  mockListInvitations,
-  mockListMembers,
-} from "@/lib/auth/mock";
-import { isAdmin } from "@/lib/auth/roles";
+import { mockGetInvitation, mockListMembers } from "@/lib/auth/mock";
 import { getCurrentUser } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
-import type {
-  InvitationInfo,
-  OrganizationInvitation,
-  OrganizationMember,
-} from "@/types";
+import type { InvitationInfo, OrganizationMember } from "@/types";
 
 // 組織 (メンバー・招待) の読み取り API。ログインユーザーの所属組織だけを対象にする。
 
@@ -35,29 +26,14 @@ export async function getMembers(): Promise<OrganizationMember[]> {
   }));
 }
 
-// 未使用の招待。管理ユーザ以外には空配列を返す (RLS でも管理ユーザのみに制限している)
-export async function getPendingInvitations(): Promise<OrganizationInvitation[]> {
-  await connection();
-  const user = await getCurrentUser();
-  if (!user || !isAdmin(user.role)) return [];
-  if (isMockAuth) return mockListInvitations(user.organizationId);
-
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("organization_invitations")
-    .select("id, email, role, token, created_at, expires_at")
-    .eq("organization_id", user.organizationId)
-    .is("accepted_at", null)
-    .gt("expires_at", new Date().toISOString())
-    .order("created_at", { ascending: false });
-  if (error) throw error;
-  return data;
-}
-
 // 招待コードから招待内容を取得する (未ログインでも呼べる)。無効・期限切れなら null。
 export async function getInvitationInfo(token: string): Promise<InvitationInfo | null> {
   if (!/^[0-9a-f]{32}$/i.test(token)) return null;
-  if (isMockAuth) return mockGetInvitation(token);
+  // 有効期限の判定で現在時刻を使うため、リクエスト時に評価する
+  if (isMockAuth) {
+    await connection();
+    return mockGetInvitation(token);
+  }
 
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("get_invitation", { p_token: token });
@@ -69,4 +45,22 @@ export async function getInvitationInfo(token: string): Promise<InvitationInfo |
   return row
     ? { organizationName: row.organization_name, email: row.email, role: row.role }
     : null;
+}
+
+// 招待メールのリンクからログインしたが、まだ登録を完了していない (メンバーではない) ユーザー。
+// 有効な招待がなければ null。
+export async function getPendingInvitee(): Promise<{
+  email: string;
+  name: string;
+  organizationName: string;
+} | null> {
+  if (isMockAuth) return null;
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const token = user?.user_metadata?.invitation_token;
+  if (!user?.email || typeof token !== "string") return null;
+  const invitation = await getInvitationInfo(token);
+  return invitation ? { email: user.email, name: "", organizationName: invitation.organizationName } : null;
 }

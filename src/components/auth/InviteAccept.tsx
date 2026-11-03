@@ -45,7 +45,14 @@ export function InviteAccept({
       if (accessToken && refreshToken) {
         const result = await acceptInviteSession({ accessToken, refreshToken });
         return result.ok
-          ? { kind: "ready", user: { email: result.email, name: result.username } }
+          ? {
+              kind: "ready",
+              user: {
+                email: result.email,
+                name: result.username,
+                organizationName: result.organizationName,
+              },
+            }
           : { kind: "error", message: result.message };
       }
       if (hash.get("error") || linkError) return { kind: "error", message: INVALID_LINK };
