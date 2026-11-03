@@ -25,7 +25,7 @@ export function AccountMenu({ user }: { user: AppUser }) {
   }, []);
 
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex shrink-0 items-center gap-3">
       <div className="hidden text-right sm:block">
         <p className="max-w-48 truncate text-sm font-medium text-slate-800">{user.name}</p>
         <p className="max-w-48 truncate text-xs text-slate-500">
@@ -35,7 +35,7 @@ export function AccountMenu({ user }: { user: AppUser }) {
       <button
         ref={triggerRef}
         type="button"
-        className="grid size-9 place-items-center rounded-full bg-slate-100 text-slate-600 ring-1 ring-slate-200 transition-colors hover:bg-slate-200 hover:text-slate-900"
+        className="grid size-10 place-items-center rounded-full bg-slate-100 text-slate-600 ring-1 ring-slate-200 transition-colors hover:bg-slate-200 hover:text-slate-900"
         aria-label="アカウントメニュー"
         aria-haspopup="menu"
         aria-expanded={open}
@@ -101,5 +101,5 @@ export function AccountMenu({ user }: { user: AppUser }) {
 }
 
 export function AccountMenuSkeleton() {
-  return <div className="size-9 animate-pulse rounded-full bg-slate-100" aria-hidden />;
+  return <div className="size-10 shrink-0 animate-pulse rounded-full bg-slate-100" aria-hidden />;
 }

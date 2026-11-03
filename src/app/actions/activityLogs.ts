@@ -29,7 +29,10 @@ export async function createActivityLog(
     if (!project)
       return { ok: false, message: "対象のプロジェクトが見つかりません" };
 
-    await activityLogRepository.create(user.organizationId, result.data);
+    await activityLogRepository.create(user.organizationId, result.data, {
+      id: user.id,
+      name: user.name,
+    });
   } catch (error) {
     console.error("Failed to create activity log", error);
     return {

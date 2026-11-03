@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 export const inputClass =
-  "rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition-colors placeholder:text-slate-400 focus:border-accent focus:ring-2 focus:ring-accent/15 aria-invalid:border-red-400 aria-invalid:focus:ring-red-500/15";
+  "rounded-lg border border-slate-200 bg-white px-3 py-2 text-base text-slate-900 sm:text-sm shadow-sm outline-none transition-colors placeholder:text-slate-400 focus:border-accent focus:ring-2 focus:ring-accent/15 aria-invalid:border-red-400 aria-invalid:focus:ring-red-500/15";
 
 export const fullInputClass = `${inputClass} w-full`;
 
@@ -44,7 +44,7 @@ export function Button({
   };
   return (
     <button
-      className={`inline-flex min-w-28 items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50 ${variants[variant]} ${className}`}
+      className={`inline-flex min-w-28 items-center justify-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors disabled:opacity-50 sm:py-2 ${variants[variant]} ${className}`}
       {...props}
     />
   );

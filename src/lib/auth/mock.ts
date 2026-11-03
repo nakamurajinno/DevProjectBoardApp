@@ -103,6 +103,16 @@ export function mockEmailExists(email: string) {
   return store.accounts.some((a) => sameEmail(a.email, email));
 }
 
+// ユーザー名 (大文字小文字を区別しない) からメールアドレスを引く
+export function mockFindEmailByUsername(username: string): string | null {
+  const account = store.accounts.find((a) => a.name.toLowerCase() === username.toLowerCase());
+  return account?.email ?? null;
+}
+
+export function mockUsernameExists(username: string) {
+  return mockFindEmailByUsername(username) !== null;
+}
+
 export function mockAuthenticate(
   email: string,
   password: string,

@@ -25,13 +25,13 @@ export async function getMembers(): Promise<OrganizationMember[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, display_name, email, role, created_at")
+    .select("id, username, email, role, created_at")
     .eq("organization_id", user.organizationId)
     .order("created_at", { ascending: true });
   if (error) throw error;
-  return data.map(({ display_name, ...rest }) => ({
+  return data.map(({ username, ...rest }) => ({
     ...rest,
-    name: display_name || rest.email.split("@")[0],
+    name: username || rest.email.split("@")[0],
   }));
 }
 

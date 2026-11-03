@@ -1,10 +1,11 @@
 import type {
   ActivityLog,
+  Creator,
   Project,
   ProjectInput,
   ProjectWithProgress,
 } from "@/types";
-import { MOCK_DEMO_ORG_ID, MOCK_OTHER_ORG_ID } from "@/lib/auth/mock";
+import { findMockUser, MOCK_DEMO_ORG_ID, MOCK_OTHER_ORG_ID } from "@/lib/auth/mock";
 import type { ActivityLogRepository, ProjectRepository } from "./types";
 
 // インメモリのモックデータ。サーバープロセスが生きている間だけ保持される。
@@ -28,6 +29,7 @@ const seed = (): MockStore => ({
       scope_step1: "・一覧画面\n・詳細画面（参照、登録）",
       scope_step2: "・日報入力/参照\n・ユーザー/グループ認証",
       organization_id: MOCK_DEMO_ORG_ID,
+      created_by: "u-admin",
       created_at: "2026-10-01T09:00:00.000Z",
       updated_at: "2026-10-28T09:00:00.000Z",
     },
@@ -43,6 +45,7 @@ const seed = (): MockStore => ({
       scope_step1: "・支出登録\n・月次グラフ",
       scope_step2: "・レシートOCR",
       organization_id: MOCK_DEMO_ORG_ID,
+      created_by: "u-admin",
       created_at: "2026-10-10T09:00:00.000Z",
       updated_at: "2026-10-10T09:00:00.000Z",
     },
@@ -59,6 +62,7 @@ const seed = (): MockStore => ({
       scope_step1: "",
       scope_step2: "",
       organization_id: MOCK_OTHER_ORG_ID,
+      created_by: "u-other",
       created_at: "2026-10-12T09:00:00.000Z",
       updated_at: "2026-10-12T09:00:00.000Z",
     },
@@ -71,6 +75,8 @@ const seed = (): MockStore => ({
       hours: 2,
       content: "・●●機能実装\n・▲▲機能不具合修正",
       organization_id: MOCK_DEMO_ORG_ID,
+      created_by: "u-admin",
+      created_by_name: null,
       created_at: "2026-10-28T12:00:00.000Z",
     },
     {
@@ -80,6 +86,8 @@ const seed = (): MockStore => ({
       hours: 0.5,
       content: "・■■機能実装",
       organization_id: MOCK_DEMO_ORG_ID,
+      created_by: "u-admin",
+      created_by_name: null,
       created_at: "2026-10-07T12:00:00.000Z",
     },
     {
@@ -89,14 +97,25 @@ const seed = (): MockStore => ({
       hours: 2.5,
       content: "・▲▲機能実装",
       organization_id: MOCK_DEMO_ORG_ID,
+      created_by: "u-admin",
+      created_by_name: null,
       created_at: "2026-10-04T12:00:00.000Z",
     },
   ],
 });
 
-// 組織対応前のデータ形式 (HMR で古いストアが残っている場合) に備えてキー名を変えている
-const globalForMock = globalThis as unknown as { __mockStoreV2?: MockStore };
-const store = (globalForMock.__mockStoreV2 ??= seed());
+// 古いデータ形式 (HMR で古いストアが残っている場合) に備えてキー名を変えている
+const globalForMock = globalThis as unknown as { __mockStoreV3?: MockStore };
+const store = (globalForMock.__mockStoreV3 ??= seed());
+
+// 登録者のユーザー名は、表示時にアカウントから引く (ユーザー名の変更を反映するため)
+function creatorName(userId: string | null) {
+  return findMockUser(userId ?? undefined)?.name ?? null;
+}
+
+function withCreator(log: ActivityLog): ActivityLog {
+  return structuredClone({ ...log, created_by_name: creatorName(log.created_by) });
+}
 
 function findProject(orgId: string, id: string) {
   return store.projects.find((p) => p.id === id && p.organization_id === orgId);
@@ -106,7 +125,11 @@ function withProgress(project: Project): ProjectWithProgress {
   const actual_hours = store.logs
     .filter((log) => log.project_id === project.id)
     .reduce((sum, log) => sum + log.hours, 0);
-  return structuredClone({ ...project, actual_hours });
+  return structuredClone({
+    ...project,
+    actual_hours,
+    created_by_name: creatorName(project.created_by),
+  });
 }
 
 function toLinks(input: ProjectInput) {
@@ -126,12 +149,13 @@ export const mockProjectRepository: ProjectRepository = {
     return project ? withProgress(project) : null;
   },
 
-  async create(orgId, input) {
+  async create(orgId, input, creator: Creator) {
     const now = new Date().toISOString();
     const project: Project = {
       ...input,
       id: crypto.randomUUID(),
       organization_id: orgId,
+      created_by: creator.id,
       links: toLinks(input),
       created_at: now,
       updated_at: now,
@@ -164,28 +188,29 @@ export const mockProjectRepository: ProjectRepository = {
 
 export const mockActivityLogRepository: ActivityLogRepository = {
   async listByProject(orgId, projectId) {
-    return structuredClone(
-      store.logs
-        .filter((log) => log.project_id === projectId && log.organization_id === orgId)
-        .sort(
-          (a, b) =>
-            b.worked_on.localeCompare(a.worked_on) ||
-            b.created_at.localeCompare(a.created_at),
-        ),
-    );
+    return store.logs
+      .filter((log) => log.project_id === projectId && log.organization_id === orgId)
+      .sort(
+        (a, b) =>
+          b.worked_on.localeCompare(a.worked_on) ||
+          b.created_at.localeCompare(a.created_at),
+      )
+      .map(withCreator);
   },
 
-  async create(orgId, input) {
+  async create(orgId, input, creator: Creator) {
     if (!findProject(orgId, input.project_id))
       throw new Error(`Project not found: ${input.project_id}`);
     const log: ActivityLog = {
       ...input,
       id: crypto.randomUUID(),
       organization_id: orgId,
+      created_by: creator.id,
+      created_by_name: null,
       created_at: new Date().toISOString(),
     };
     store.logs.push(log);
-    return structuredClone(log);
+    return withCreator(log);
   },
 
   async update(orgId, id, input) {
@@ -198,7 +223,7 @@ export const mockActivityLogRepository: ActivityLogRepository = {
     if (index === -1) throw new Error(`Activity log not found: ${id}`);
     const log: ActivityLog = { ...store.logs[index], ...input };
     store.logs[index] = log;
-    return structuredClone(log);
+    return withCreator(log);
   },
   async delete(orgId, id, projectId) {
     const index = store.logs.findIndex(

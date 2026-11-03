@@ -40,7 +40,7 @@ export function Drawer({
         <button
           type="button"
           onClick={close}
-          className="absolute right-3 top-3 z-10 grid size-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+          className="absolute right-2 top-2 z-10 grid size-10 place-items-center sm:right-3 sm:top-3 sm:size-8 rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
           aria-label="閉じる"
         >
           <X className="size-5" aria-hidden />
@@ -110,18 +110,24 @@ function ModalFrame({
 }) {
   const titleId = useId();
   return (
-    <div className="fixed inset-0 z-40 grid place-items-center overflow-y-auto p-4">
-      <div className="absolute inset-0 bg-slate-900/20" onClick={onClose} aria-hidden />
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        className={`relative w-full ${widthClass} overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl`}
-      >
-        <h2 id={titleId} className="border-b border-slate-100 px-6 py-4 text-sm font-semibold text-slate-900">
-          {title}
-        </h2>
-        <div className="px-6 pb-5 pt-5">{children}</div>
+    // 内容が画面より高い場合でも上端まで스크롤できるよう、grid の中央寄せではなく min-h-full の flex で配置する
+    <div className="fixed inset-0 z-40 overflow-y-auto">
+      <div className="fixed inset-0 bg-slate-900/20" onClick={onClose} aria-hidden />
+      <div className="relative flex min-h-full items-center justify-center p-3 sm:p-4">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={titleId}
+          className={`relative w-full ${widthClass} overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl`}
+        >
+          <h2
+            id={titleId}
+            className="break-words border-b border-slate-100 px-4 py-4 text-sm font-semibold text-slate-900 sm:px-6"
+          >
+            {title}
+          </h2>
+          <div className="px-4 pb-5 pt-5 sm:px-6">{children}</div>
+        </div>
       </div>
     </div>
   );

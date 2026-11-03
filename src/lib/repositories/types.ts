@@ -1,5 +1,6 @@
 import type {
   ActivityLog,
+  Creator,
   ActivityLogInput,
   ProjectInput,
   ProjectWithProgress,
@@ -11,14 +12,14 @@ import type {
 export interface ProjectRepository {
   list(orgId: string): Promise<ProjectWithProgress[]>;
   get(orgId: string, id: string): Promise<ProjectWithProgress | null>;
-  create(orgId: string, input: ProjectInput): Promise<ProjectWithProgress>;
+  create(orgId: string, input: ProjectInput, creator: Creator): Promise<ProjectWithProgress>;
   update(orgId: string, id: string, input: ProjectInput): Promise<ProjectWithProgress>;
   delete(orgId: string, id: string): Promise<void>;
 }
 
 export interface ActivityLogRepository {
   listByProject(orgId: string, projectId: string): Promise<ActivityLog[]>;
-  create(orgId: string, input: ActivityLogInput): Promise<ActivityLog>;
+  create(orgId: string, input: ActivityLogInput, creator: Creator): Promise<ActivityLog>;
   // project_id は所属確認にのみ使い、別プロジェクトへの付け替えはしない
   update(orgId: string, id: string, input: ActivityLogInput): Promise<ActivityLog>;
   delete(orgId: string, id: string, projectId: string): Promise<void>;

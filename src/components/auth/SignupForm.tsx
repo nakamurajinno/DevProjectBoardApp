@@ -132,17 +132,21 @@ export function SignupForm({
       )}
 
       <div className="space-y-4 border-t border-slate-100 pt-5">
-        <Field label="ユーザー名（表示名）" htmlFor="displayName" error={errors.displayName}>
+        <Field label="ユーザー名" htmlFor="username" error={errors.username}>
           <input
-            id="displayName"
-            name="displayName"
+            id="username"
+            name="username"
             autoComplete="nickname"
-            defaultValue={values?.displayName}
+            defaultValue={values?.username}
             maxLength={50}
-            placeholder="例: 山田 太郎"
-            aria-invalid={!!errors.displayName}
+            placeholder="例: じんの"
+            aria-invalid={!!errors.username}
+            aria-describedby="username-hint"
             className={inputClass}
           />
+          <p id="username-hint" className="mt-1 text-xs text-slate-500">
+            画面に表示される名前です。ログイン時にメールアドレスの代わりにも使えます（「@」は使用不可）
+          </p>
         </Field>
         <Field label="メールアドレス" htmlFor="email" error={errors.email}>
           <input

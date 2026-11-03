@@ -8,6 +8,8 @@ import {
   findMockUser,
   mockAuthenticate,
   mockChangePassword,
+  mockFindEmailByUsername,
+  mockUsernameExists,
   mockSignUp,
   MOCK_SESSION_COOKIE,
 } from "@/lib/auth/mock";
@@ -15,68 +17,119 @@ import { REMEMBER_COOKIE, rememberCookieOptions } from "@/lib/auth/remember";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getInvitationInfo } from "@/lib/data/organization";
 import { getOrigin } from "@/lib/request";
-import { isEmailRegistered } from "@/lib/supabase/admin";
+import {
+  findLoginEmailByUsername,
+  isEmailRegistered,
+  type EmailLookupResult,
+} from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import {
   EMAIL_RE,
   readSignupForm,
-  validateDisplayName,
   validatePassword,
   validateSignupInput,
   type SignupFieldErrors,
   type SignupInput,
+  validateUsername,
 } from "@/lib/validation/auth";
 
 const NOT_FOUND_MESSAGE = "ユーザーが見つかりません。アカウント登録を行ってください";
 const ALREADY_REGISTERED_MESSAGE =
   "このメールアドレスは既に登録されています。ログインしてください";
+const USERNAME_TAKEN_MESSAGE = "このユーザー名は既に使われています。別のユーザー名を入力してください";
+const INVALID_CREDENTIALS_MESSAGE = "メールアドレス（ユーザー名）またはパスワードが正しくありません";
+const MISSING_CREDENTIALS_MESSAGE = "メールアドレスまたはユーザー名と、パスワードを入力してください";
+
+// 「@」を含む入力はメールアドレス、それ以外はユーザー名として扱う (ユーザー名には「@」を使えない)
+const isEmailIdentifier = (identifier: string) => identifier.includes("@");
+
+// ユーザー名から登録済みのメールアドレスを引く (サーバー内でのみ使い、結果はクライアントへ返さない)
+async function resolveUsername(username: string): Promise<EmailLookupResult> {
+  if (isMockAuth) {
+    const email = mockFindEmailByUsername(username);
+    return email ? { status: "found", email } : { status: "not_found" };
+  }
+  return findLoginEmailByUsername(username);
+}
+
+// ユーザー名が使用済みか。メールアドレスは返さない RPC で確認する。確認できない場合は null
+async function isUsernameTaken(username: string): Promise<boolean | null> {
+  if (isMockAuth) return mockUsernameExists(username);
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("is_username_taken", { p_username: username });
+  if (error) {
+    console.error("Failed to check username", error);
+    return null;
+  }
+  return data;
+}
 
 // ============================================================
 // ログイン
 // ============================================================
 
 export type LoginState =
-  | { message?: string; email?: string; notRegistered?: boolean }
+  | { message?: string; identifier?: string; notRegistered?: boolean }
   | undefined;
 
-// メールアドレス・パスワードでログインする。
+// メールアドレスまたはユーザー名と、パスワードでログインする。
+// ユーザー名の場合は profiles からメールアドレスを引き、そのメールアドレスで認証する。
 // intent: "password" | "preview:<モックユーザーID>" (モックモードのプレビュー用ボタン)
 export async function login(_prev: LoginState, formData: FormData): Promise<LoginState> {
   const intent = String(formData.get("intent") ?? "password");
   const remember = formData.get("remember") === "on";
-  const email = String(formData.get("email") ?? "").trim();
+  const identifier = String(formData.get("identifier") ?? "").trim();
   const password = String(formData.get("password") ?? "");
 
   const cookieStore = await cookies();
   cookieStore.set(REMEMBER_COOKIE, remember ? "1" : "0", rememberCookieOptions(remember));
 
-  if (isMockAuth) return mockLogin({ intent, email, password, remember });
+  if (isMockAuth) return mockLogin({ intent, identifier, password, remember });
+
+  if (!identifier || !password) return { message: MISSING_CREDENTIALS_MESSAGE, identifier };
+
+  let email: string;
+  if (isEmailIdentifier(identifier)) {
+    if (!EMAIL_RE.test(identifier))
+      return { message: "メールアドレスの形式が正しくありません", identifier };
+    email = identifier;
+  } else {
+    const found = await resolveUsername(identifier);
+    if (found.status === "unavailable")
+      return {
+        message: "現在ユーザー名でのログインを利用できません。メールアドレスでログインしてください",
+        identifier,
+      };
+    if (found.status === "not_found")
+      return { message: NOT_FOUND_MESSAGE, identifier, notRegistered: true };
+    email = found.email;
+  }
 
   const supabase = await createClient({ remember });
-
-  if (!EMAIL_RE.test(email) || !password)
-    return { message: "メールアドレスとパスワードを入力してください", email };
-
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) {
     if (error.code === "email_not_confirmed")
-      return { message: "メールアドレスの確認が完了していません", email };
+      return { message: "メールアドレスの確認が完了していません", identifier };
     // Supabase は未登録とパスワード誤りを区別しないため、登録有無をサーバー側で確認する
-    if (error.code === "invalid_credentials" && (await isEmailRegistered(email)) === false)
-      return { message: NOT_FOUND_MESSAGE, email, notRegistered: true };
-    return { message: "メールアドレスまたはパスワードが正しくありません", email };
+    if (
+      error.code === "invalid_credentials" &&
+      isEmailIdentifier(identifier) &&
+      (await isEmailRegistered(email)) === false
+    )
+      return { message: NOT_FOUND_MESSAGE, identifier, notRegistered: true };
+    return { message: INVALID_CREDENTIALS_MESSAGE, identifier };
   }
   redirect("/");
 }
 
 async function mockLogin({
   intent,
-  email,
+  identifier,
   password,
   remember,
 }: {
   intent: string;
-  email: string;
+  identifier: string;
   password: string;
   remember: boolean;
 }): Promise<LoginState> {
@@ -84,18 +137,19 @@ async function mockLogin({
   if (intent.startsWith("preview:")) {
     userId = findMockUser(intent.slice("preview:".length))?.id;
   } else {
-    if (!EMAIL_RE.test(email) || !password)
-      return { message: "メールアドレスとパスワードを入力してください", email };
+    if (!identifier || !password) return { message: MISSING_CREDENTIALS_MESSAGE, identifier };
+    const found = isEmailIdentifier(identifier) ? null : await resolveUsername(identifier);
+    const email = found ? (found.status === "found" ? found.email : null) : identifier;
+    if (!email) return { message: NOT_FOUND_MESSAGE, identifier, notRegistered: true };
     const result = mockAuthenticate(email, password);
     if (!result.ok)
       return result.reason === "not_found"
-        ? { message: NOT_FOUND_MESSAGE, email, notRegistered: true }
-        : { message: "メールアドレスまたはパスワードが正しくありません", email };
+        ? { message: NOT_FOUND_MESSAGE, identifier, notRegistered: true }
+        : { message: INVALID_CREDENTIALS_MESSAGE, identifier };
     userId = result.id;
   }
 
-  if (!userId)
-    return { message: "メールアドレスまたはパスワードが正しくありません", email };
+  if (!userId) return { message: INVALID_CREDENTIALS_MESSAGE, identifier };
 
   await setMockSession(userId, remember);
   redirect("/");
@@ -157,6 +211,10 @@ export async function signup(_prev: SignupState, formData: FormData): Promise<Si
       });
   }
 
+  // ユーザー名はログインにも使うため、他のユーザーと重複させない (DB の一意制約でも保証している)
+  if (await isUsernameTaken(input.username))
+    return fail({ errors: { username: USERNAME_TAKEN_MESSAGE } });
+
   const cookieStore = await cookies();
   cookieStore.set(REMEMBER_COOKIE, "1", rememberCookieOptions(true));
 
@@ -164,7 +222,7 @@ export async function signup(_prev: SignupState, formData: FormData): Promise<Si
     const result = mockSignUp({
       email: input.email,
       password,
-      name: input.displayName,
+      name: input.username,
       organizationName: input.mode === "create" ? input.organizationName : undefined,
       invitationToken: input.mode === "join" ? input.invitationToken : undefined,
     });
@@ -186,8 +244,8 @@ export async function signup(_prev: SignupState, formData: FormData): Promise<Si
       // DB のトリガー (public.handle_new_user) がこの値を見て組織の作成 / 招待組織への参加を行う
       data:
         input.mode === "create"
-          ? { display_name: input.displayName, organization_name: input.organizationName }
-          : { display_name: input.displayName, invitation_token: input.invitationToken },
+          ? { username: input.username, organization_name: input.organizationName }
+          : { username: input.username, invitation_token: input.invitationToken },
     },
   });
 
@@ -217,7 +275,7 @@ export async function signup(_prev: SignupState, formData: FormData): Promise<Si
 // ============================================================
 
 export type InviteSessionResult =
-  | { ok: true; email: string; displayName: string }
+  | { ok: true; email: string; username: string }
   | { ok: false; message: string };
 
 // 招待メールのリンクは URL のハッシュ (#access_token=...) でトークンを返すため、
@@ -240,15 +298,17 @@ export async function acceptInviteSession(tokens: {
     console.error("Failed to set invite session", error);
     return { ok: false, message: "招待リンクが無効か、有効期限が切れています" };
   }
-  return {
-    ok: true,
-    email: data.user.email ?? "",
-    displayName: String(data.user.user_metadata?.display_name ?? ""),
-  };
+  // 招待メール送信時に仮のユーザー名 (メールアドレスの @ より前など) で登録されている
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("username")
+    .eq("id", data.user.id)
+    .maybeSingle();
+  return { ok: true, email: data.user.email ?? "", username: profile?.username ?? "" };
 }
 
 export type CompleteInvitationState =
-  | { errors?: { password?: string; displayName?: string }; message?: string }
+  | { errors?: { password?: string; username?: string }; message?: string }
   | undefined;
 
 // 招待されたユーザーがパスワードとユーザー名を設定して登録を完了する
@@ -260,12 +320,12 @@ export async function completeInvitation(
   if (isMockAuth) return { message: "モックモードでは招待メールは使えません" };
 
   const password = String(formData.get("password") ?? "");
-  const displayName = String(formData.get("displayName") ?? "").trim();
+  const username = String(formData.get("username") ?? "").trim();
   const errors = {
     password: validatePassword(password),
-    displayName: validateDisplayName(displayName),
+    username: validateUsername(username),
   };
-  if (errors.password || errors.displayName) return { errors };
+  if (errors.password || errors.username) return { errors };
 
   const supabase = await createClient();
   const {
@@ -273,18 +333,23 @@ export async function completeInvitation(
   } = await supabase.auth.getUser();
   if (!user) return { message: "招待リンクの有効期限が切れています。もう一度招待を依頼してください" };
 
-  const { error } = await supabase.auth.updateUser({ password, data: { display_name: displayName } });
+  // 先にユーザー名を確定する (他のユーザーと重複していればここで弾く)
+  const { error: profileError } = await supabase.rpc("update_my_username", {
+    p_username: username,
+  });
+  if (profileError) {
+    if (profileError.code === "23505") return { errors: { username: USERNAME_TAKEN_MESSAGE } };
+    console.error("Failed to update username", profileError);
+    return { message: "登録に失敗しました。時間をおいて再度お試しください" };
+  }
+
+  const { error } = await supabase.auth.updateUser({ password, data: { username } });
   if (error) {
     console.error("Failed to set password", error);
     return error.code === "weak_password" || error.code === "same_password"
       ? { errors: { password: "別のパスワードを設定してください" } }
       : { message: "登録に失敗しました。時間をおいて再度お試しください" };
   }
-
-  const { error: profileError } = await supabase.rpc("update_my_display_name", {
-    p_display_name: displayName,
-  });
-  if (profileError) console.error("Failed to update display name", profileError);
 
   redirect("/");
 }

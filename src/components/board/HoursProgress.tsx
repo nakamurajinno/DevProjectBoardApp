@@ -5,14 +5,16 @@ export function formatHours(hours: number) {
 export function HoursProgress({
   actual,
   planned,
+  className = "mx-auto",
 }: {
   actual: number;
   planned: number;
+  className?: string;
 }) {
   const ratio = planned > 0 ? Math.min(actual / planned, 1) : 0;
   const over = planned > 0 && actual > planned;
   return (
-    <div className="mx-auto w-32 space-y-1.5">
+    <div className={`w-32 space-y-1.5 ${className}`}>
       <p className={`text-center text-xs tabular-nums ${over ? "font-medium text-red-600" : "text-slate-500"}`}>
         {formatHours(actual)}/{formatHours(planned)}h
       </p>

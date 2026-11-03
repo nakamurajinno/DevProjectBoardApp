@@ -23,6 +23,8 @@ export type Project = {
   scope_step1: string;
   scope_step2: string;
   organization_id: string;
+  // 登録者 (profiles.id)。登録者が退会した場合は null
+  created_by: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -34,13 +36,21 @@ export type ActivityLog = {
   hours: number;
   content: string;
   organization_id: string;
+  // 登録者 (profiles.id) とそのユーザー名。登録者が退会した場合は null
+  created_by: string | null;
+  created_by_name: string | null;
   created_at: string;
 };
 
 // 一覧・詳細表示用。実績工数は活動ログの合計から算出する。
+// created_by_name は登録者のユーザー名。
 export type ProjectWithProgress = Project & {
   actual_hours: number;
+  created_by_name: string | null;
 };
+
+// 登録を行うユーザー (リポジトリの create に渡す)
+export type Creator = { id: string; name: string };
 
 // 登録・更新時の入力値
 export type ProjectInput = Pick<
@@ -68,6 +78,7 @@ export type ActivityLogInput = Pick<
 export type UserRole = "viewer" | "editor" | "admin";
 
 // ログイン中のユーザー。クライアントへ渡してよい項目だけを持つ。
+// name はユーザー名 (profiles.username)。
 export type AppUser = {
   id: string;
   name: string;

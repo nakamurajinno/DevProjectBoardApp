@@ -13,18 +13,17 @@ export default function BoardLayout({ children }: LayoutProps<"/">) {
   return (
     <>
       <Header />
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6">
-        <div className="mb-5 flex min-h-9 justify-end">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-5 sm:px-6 sm:py-8">
+        <div className="mb-4 flex min-h-10 justify-end sm:mb-5">
           {/* 権限によって表示が変わるため Suspense で囲む */}
           <Suspense>
             <AddProjectButton />
           </Suspense>
         </div>
-        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
-          <Suspense fallback={<ProjectTableSkeleton />}>
-            <ProjectTable />
-          </Suspense>
-        </div>
+        {/* モバイルはカード一覧、デスクトップはテーブル (枠線・横スクロールは各表示側で持つ) */}
+        <Suspense fallback={<ProjectTableSkeleton />}>
+          <ProjectTable />
+        </Suspense>
       </main>
       {children}
       {/* usePathname は実行時にしか決まらないため Suspense で囲む (何も描画しないので fallback 不要) */}

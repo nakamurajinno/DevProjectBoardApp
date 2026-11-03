@@ -1,4 +1,4 @@
-export const TABLE_HEADERS = ["No.", "状況", "アプリ名", "概要", "SW区分", "工数", ""];
+export const TABLE_HEADERS = ["No.", "状況", "アプリ名", "概要", "SW区分", "登録者", "工数", ""];
 
 export function ProjectTableHead() {
   return (

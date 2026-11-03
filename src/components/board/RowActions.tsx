@@ -10,9 +10,16 @@ import type { Project } from "@/types";
 import { ActivityLogForm } from "./ActivityLogForm";
 
 const circleButton =
-  "grid size-8 place-items-center rounded-lg border border-slate-200 bg-white text-slate-500 shadow-sm transition-colors hover:bg-slate-50 hover:text-slate-900";
+  "grid size-10 place-items-center rounded-lg border border-slate-200 bg-white text-slate-500 shadow-sm transition-colors hover:bg-slate-50 hover:text-slate-900 lg:size-8";
 
-export function RowActions({ project }: { project: Pick<Project, "id" | "name"> }) {
+// alwaysVisible: モバイルのカード表示など、ホバーに頼らず常にボタンを表示する場合に true
+export function RowActions({
+  project,
+  alwaysVisible = false,
+}: {
+  project: Pick<Project, "id" | "name">;
+  alwaysVisible?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const [logOpen, setLogOpen] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -32,8 +39,12 @@ export function RowActions({ project }: { project: Pick<Project, "id" | "name"> 
   // 行 (tr.group) のホバー / フォーカス時のみ表示する。メニュー展開中とホバー不可端末では常に表示。
   return (
     <div
-      className={`flex items-center justify-end gap-2 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100 ${
-        open ? "opacity-100" : "opacity-0"
+      className={`flex items-center justify-end gap-2 transition-opacity ${
+        alwaysVisible
+          ? ""
+          : `group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100 ${
+              open ? "opacity-100" : "opacity-0"
+            }`
       }`}
     >
       <Tooltip content="活動ログ入力">

@@ -24,7 +24,7 @@ export const getCurrentUser = cache(async (): Promise<AppUser | null> => {
 
   const { data: profile, error } = await supabase
     .from("profiles")
-    .select("display_name, role, organization_id, organizations(name)")
+    .select("username, role, organization_id, organizations(name)")
     .eq("id", user.id)
     .maybeSingle();
   if (error) console.error("Failed to load profile", error);
@@ -32,7 +32,7 @@ export const getCurrentUser = cache(async (): Promise<AppUser | null> => {
 
   return {
     id: user.id,
-    name: profile.display_name || user.email?.split("@")[0] || "ユーザー",
+    name: profile.username || user.email?.split("@")[0] || "ユーザー",
     email: user.email ?? null,
     role: profile.role,
     organizationId: profile.organization_id,

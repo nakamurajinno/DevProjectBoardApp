@@ -3,7 +3,7 @@ import type { UserRole } from "@/types";
 
 export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export const PASSWORD_MIN = 8;
-export const DISPLAY_NAME_MAX = 50;
+export const USERNAME_MAX = 50;
 export const ORGANIZATION_NAME_MAX = 100;
 
 export type SignupMode = "create" | "join";
@@ -11,7 +11,7 @@ export type SignupMode = "create" | "join";
 export type SignupInput = {
   email: string;
   password: string;
-  displayName: string;
+  username: string;
   mode: SignupMode;
   organizationName: string;
   invitationToken: string;
@@ -24,7 +24,7 @@ export function readSignupForm(formData: FormData): SignupInput {
   return {
     email: text("email"),
     password: String(formData.get("password") ?? ""),
-    displayName: text("displayName"),
+    username: text("username"),
     mode: formData.get("mode") === "join" ? "join" : "create",
     organizationName: text("organizationName"),
     invitationToken: extractInvitationToken(text("invitationToken")),
@@ -42,9 +42,12 @@ export function validatePassword(password: string) {
   return undefined;
 }
 
-export function validateDisplayName(name: string) {
+// ユーザー名はログインにも使うため、メールアドレスと区別できるよう「@」を含めない。
+// (一意かどうかはサーバー・DB 側で確認する)
+export function validateUsername(name: string) {
   if (!name) return "ユーザー名を入力してください";
-  if (name.length > DISPLAY_NAME_MAX) return `ユーザー名は${DISPLAY_NAME_MAX}文字以内で入力してください`;
+  if ([...name].length > USERNAME_MAX) return `ユーザー名は${USERNAME_MAX}文字以内で入力してください`;
+  if (name.includes("@")) return "ユーザー名に「@」は使用できません";
   return undefined;
 }
 
@@ -53,8 +56,8 @@ export function validateSignupInput(input: SignupInput): SignupFieldErrors {
   if (!EMAIL_RE.test(input.email)) errors.email = "メールアドレスの形式が正しくありません";
   const password = validatePassword(input.password);
   if (password) errors.password = password;
-  const displayName = validateDisplayName(input.displayName);
-  if (displayName) errors.displayName = displayName;
+  const username = validateUsername(input.username);
+  if (username) errors.username = username;
   if (input.mode === "create") {
     if (!input.organizationName) errors.organizationName = "組織名を入力してください";
     else if (input.organizationName.length > ORGANIZATION_NAME_MAX)

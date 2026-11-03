@@ -29,7 +29,10 @@ export async function createProject(
   const result = validateProjectInput(input);
   if (!result.ok) return { errors: result.errors };
 
-  await projectRepository.create(user.organizationId, result.data);
+  await projectRepository.create(user.organizationId, result.data, {
+    id: user.id,
+    name: user.name,
+  });
   revalidatePath("/", "layout");
   redirect("/");
 }

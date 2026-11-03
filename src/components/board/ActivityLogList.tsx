@@ -68,6 +68,9 @@ export function ActivityLogList({
               <header className="flex min-h-8 items-center gap-4 text-sm font-semibold text-slate-900">
                 <time dateTime={log.worked_on}>{formatDate(log.worked_on)}</time>
                 <span className="tabular-nums text-accent">{formatHours(log.hours)}h</span>
+                <span className="min-w-0 truncate text-xs font-normal text-slate-500">
+                  登録者: {log.created_by_name ?? "—"}
+                </span>
                 {editable && (
                   <div className="ml-auto flex items-center gap-1">
                     <button

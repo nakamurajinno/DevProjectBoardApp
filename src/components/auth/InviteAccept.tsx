@@ -45,7 +45,7 @@ export function InviteAccept({
       if (accessToken && refreshToken) {
         const result = await acceptInviteSession({ accessToken, refreshToken });
         return result.ok
-          ? { kind: "ready", user: { email: result.email, name: result.displayName } }
+          ? { kind: "ready", user: { email: result.email, name: result.username } }
           : { kind: "error", message: result.message };
       }
       if (hash.get("error") || linkError) return { kind: "error", message: INVALID_LINK };
@@ -100,14 +100,14 @@ function CompleteForm({ user }: { user: InvitedUser }) {
           className={`${fullInputClass} bg-readonly py-2.5 text-slate-500`}
         />
       </Field>
-      <Field label="ユーザー名（表示名）" htmlFor="displayName" error={errors.displayName}>
+      <Field label="ユーザー名" htmlFor="username" error={errors.username}>
         <input
-          id="displayName"
-          name="displayName"
+          id="username"
+          name="username"
           autoComplete="nickname"
           defaultValue={user.name || user.email.split("@")[0]}
           maxLength={50}
-          aria-invalid={!!errors.displayName}
+          aria-invalid={!!errors.username}
           className={`${fullInputClass} py-2.5`}
         />
       </Field>

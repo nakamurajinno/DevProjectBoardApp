@@ -34,7 +34,7 @@ export type PreviewAccount = {
   organizationName: string;
 };
 
-// メールアドレス・パスワードでログインする。押したボタンの intent をサーバーへ送る
+// メールアドレスまたはユーザー名とパスワードでログインする。押したボタンの intent をサーバーへ送る
 // (モックモードではプレビュー用アカウントのボタンも同じフォームに置き、「ログイン状態保持」を共有する)
 // 未登録のユーザーは自動登録せず、ユーザー登録画面へ案内する
 export function LoginForm({ previewAccounts }: { previewAccounts?: PreviewAccount[] }) {
@@ -73,16 +73,18 @@ export function LoginForm({ previewAccounts }: { previewAccounts?: PreviewAccoun
 
       <div className="space-y-4">
         <div className="space-y-1.5">
-          <label htmlFor="email" className="block text-sm font-medium text-slate-700">
-            メールアドレス
+          <label htmlFor="identifier" className="block text-sm font-medium text-slate-700">
+            メールアドレスまたはユーザー名
           </label>
           <input
-            id="email"
-            name="email"
-            type="email"
-            autoComplete="email"
-            defaultValue={state?.email}
-            key={state?.email}
+            id="identifier"
+            name="identifier"
+            type="text"
+            autoComplete="username"
+            autoCapitalize="none"
+            spellCheck={false}
+            defaultValue={state?.identifier}
+            key={state?.identifier}
             placeholder="you@example.com"
             className={`${fullInputClass} py-2.5`}
           />

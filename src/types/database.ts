@@ -25,12 +25,14 @@ export type Database = {
           scope_step1: string;
           scope_step2: string;
           organization_id: string;
+          created_by: string | null;
           created_at: string;
           updated_at: string;
         };
         Insert: {
           id?: string;
           organization_id?: string;
+          created_by?: string | null;
           status?: Database["public"]["Enums"]["project_status"];
           name: string;
           summary?: string;
@@ -55,6 +57,7 @@ export type Database = {
           scope_step1?: string;
           scope_step2?: string;
           organization_id?: string;
+          created_by?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -68,12 +71,14 @@ export type Database = {
           hours: number;
           content: string;
           organization_id: string;
+          created_by: string | null;
           created_at: string;
         };
         Insert: {
           id?: string;
           project_id: string;
           organization_id?: string;
+          created_by?: string | null;
           worked_on: string;
           hours: number;
           content?: string;
@@ -86,6 +91,7 @@ export type Database = {
           hours?: number;
           content?: string;
           organization_id?: string;
+          created_by?: string | null;
           created_at?: string;
         };
         Relationships: [
@@ -96,6 +102,13 @@ export type Database = {
             referencedRelation: "projects";
             referencedColumns: ["id"];
           },
+          {
+            foreignKeyName: "activity_logs_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
         ];
       };
       profiles: {
@@ -103,6 +116,7 @@ export type Database = {
           id: string;
           organization_id: string;
           display_name: string;
+          username: string;
           email: string;
           role: Database["public"]["Enums"]["user_role"];
           created_at: string;
@@ -112,6 +126,7 @@ export type Database = {
           id: string;
           organization_id: string;
           display_name?: string;
+          username?: string;
           email?: string;
           role?: Database["public"]["Enums"]["user_role"];
           created_at?: string;
@@ -121,6 +136,7 @@ export type Database = {
           id?: string;
           organization_id?: string;
           display_name?: string;
+          username?: string;
           email?: string;
           role?: Database["public"]["Enums"]["user_role"];
           created_at?: string;
@@ -209,6 +225,7 @@ export type Database = {
       projects_with_progress: {
         Row: Database["public"]["Tables"]["projects"]["Row"] & {
           actual_hours: number;
+          created_by_name: string | null;
         };
         Relationships: [];
       };
@@ -235,6 +252,9 @@ export type Database = {
         Returns: undefined;
       };
       update_my_display_name: { Args: { p_display_name: string }; Returns: undefined };
+      update_my_username: { Args: { p_username: string }; Returns: undefined };
+      get_login_email: { Args: { p_username: string }; Returns: string | null };
+      is_username_taken: { Args: { p_username: string }; Returns: boolean };
     };
     Enums: {
       project_status: "not_started" | "in_progress" | "done";

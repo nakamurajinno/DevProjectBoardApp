@@ -13,7 +13,12 @@ import type { ActivityLogRepository, ProjectRepository } from "./types";
 
 type ProjectRow =
   Database["public"]["Views"]["projects_with_progress"]["Row"];
-type ActivityLogRow = Database["public"]["Tables"]["activity_logs"]["Row"];
+type ActivityLogRow = Database["public"]["Tables"]["activity_logs"]["Row"] & {
+  creator: { username: string } | null;
+};
+
+// 活動ログは登録者のユーザー名を profiles から埋め込んで取得する
+const ACTIVITY_LOG_COLUMNS = "*, creator:profiles!activity_logs_created_by_fkey(username)";
 
 // id 列は uuid 型なので、形式外の値で問い合わせると DB エラーになる。事前に弾く。
 const UUID_RE =
@@ -28,8 +33,8 @@ function toProject(row: ProjectRow): ProjectWithProgress {
   };
 }
 
-function toActivityLog(row: ActivityLogRow): ActivityLog {
-  return { ...row, hours: Number(row.hours) };
+function toActivityLog({ creator, ...row }: ActivityLogRow): ActivityLog {
+  return { ...row, hours: Number(row.hours), created_by_name: creator?.username ?? null };
 }
 
 function toRow(input: ProjectInput) {
@@ -64,16 +69,17 @@ export const supabaseProjectRepository: ProjectRepository = {
     return data ? toProject(data) : null;
   },
 
-  async create(orgId, input) {
+  async create(orgId, input, creator) {
     const supabase = await createClient();
+    // created_by は DB のトリガーでもログインユーザーに設定される
     const { data, error } = await supabase
       .from("projects")
-      .insert({ ...toRow(input), organization_id: orgId })
+      .insert({ ...toRow(input), organization_id: orgId, created_by: creator.id })
       .select("*")
       .single();
     if (error) throw error;
     // 新規作成直後は活動ログがないため実績は 0
-    return toProject({ ...data, actual_hours: 0 });
+    return toProject({ ...data, actual_hours: 0, created_by_name: creator.name });
   },
 
   async update(orgId, id, input) {
@@ -113,7 +119,7 @@ export const supabaseActivityLogRepository: ActivityLogRepository = {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("activity_logs")
-      .select("*")
+      .select(ACTIVITY_LOG_COLUMNS)
       .eq("organization_id", orgId)
       .eq("project_id", projectId)
       .order("worked_on", { ascending: false })
@@ -122,15 +128,15 @@ export const supabaseActivityLogRepository: ActivityLogRepository = {
     return data.map(toActivityLog);
   },
 
-  async create(orgId, input) {
+  async create(orgId, input, creator) {
     if (!UUID_RE.test(input.project_id))
       throw new Error(`Project not found: ${input.project_id}`);
     const supabase = await createClient();
     // organization_id は DB のトリガーでプロジェクトと同じ組織が設定される (RLS で自組織か検証される)
     const { data, error } = await supabase
       .from("activity_logs")
-      .insert({ ...input, organization_id: orgId })
-      .select("*")
+      .insert({ ...input, organization_id: orgId, created_by: creator.id })
+      .select(ACTIVITY_LOG_COLUMNS)
       .single();
     if (error) throw error;
     return toActivityLog(data);
@@ -146,7 +152,7 @@ export const supabaseActivityLogRepository: ActivityLogRepository = {
       .eq("organization_id", orgId)
       .eq("id", id)
       .eq("project_id", project_id)
-      .select("*")
+      .select(ACTIVITY_LOG_COLUMNS)
       .maybeSingle();
     if (error) throw error;
     if (!data) throw new Error(`Activity log not found: ${id}`);

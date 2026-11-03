@@ -26,6 +26,9 @@ export function ProjectInfoView({ project }: { project: ProjectWithProgress }) {
           {categoryLabel(project.category)}
         </p>
       </Field>
+      <Field label="登録者">
+        <p className={`${readonlyClass} w-fit min-w-24`}>{project.created_by_name ?? "—"}</p>
+      </Field>
       <Field label="工数">
         <p className={`${readonlyClass} w-fit min-w-24`}>
           {formatHours(project.actual_hours)} / {formatHours(project.planned_hours)} h
