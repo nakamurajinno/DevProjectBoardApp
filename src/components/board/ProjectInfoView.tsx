@@ -40,21 +40,21 @@ export function ProjectInfoView({ project }: { project: ProjectWithProgress }) {
         ) : (
           <table className="w-full table-fixed text-sm">
             <thead>
-              <tr className="border-b border-gray-300 text-left text-xs text-gray-600">
+              <tr className="border-b border-slate-200 text-left text-xs text-slate-500">
                 <th className="w-1/3 py-1.5 font-normal">ラベル</th>
                 <th className="py-1.5 font-normal">URL</th>
               </tr>
             </thead>
             <tbody>
               {project.links.map((link) => (
-                <tr key={link.id} className="border-b border-gray-200">
-                  <td className="truncate py-2 pr-2">{link.label || "—"}</td>
+                <tr key={link.id} className="border-b border-slate-100">
+                  <td className="truncate py-2 pr-2 text-slate-700">{link.label || "—"}</td>
                   <td className="truncate py-2">
                     <a
                       href={link.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex max-w-full items-center gap-1 text-primary hover:underline"
+                      className="inline-flex max-w-full items-center gap-1 text-accent hover:underline"
                     >
                       <span className="truncate">{link.url}</span>
                       <ExternalLink className="size-3.5 shrink-0" aria-hidden />
@@ -69,11 +69,11 @@ export function ProjectInfoView({ project }: { project: ProjectWithProgress }) {
       <Field label="スコープ">
         <dl className="space-y-2 text-sm">
           <div className="grid grid-cols-[6.5rem_1fr] gap-2">
-            <dt className="pt-2.5">Step1（MVP）:</dt>
+            <dt className="pt-2.5 text-slate-500">Step1（MVP）:</dt>
             <dd className={readonlyClass}>{project.scope_step1 || "—"}</dd>
           </div>
           <div className="grid grid-cols-[6.5rem_1fr] gap-2">
-            <dt className="pt-2.5">Step2（最終）:</dt>
+            <dt className="pt-2.5 text-slate-500">Step2（最終）:</dt>
             <dd className={readonlyClass}>{project.scope_step2 || "—"}</dd>
           </div>
         </dl>

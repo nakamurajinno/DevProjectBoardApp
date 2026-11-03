@@ -14,18 +14,18 @@ export default function BoardLayout({ children }: LayoutProps<"/">) {
   return (
     <>
       <Header />
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
-        <div className="mb-4 flex justify-end">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6">
+        <div className="mb-5 flex justify-end">
           <Link
             href="/projects/new"
             scroll={false}
-            className="inline-flex items-center gap-1 rounded-md bg-primary px-4 py-1.5 text-sm font-medium text-white hover:bg-primary-hover"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-primary-hover"
           >
             <Plus className="size-4" aria-hidden />
             Add Project
           </Link>
         </div>
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
           <Suspense fallback={<ProjectTableSkeleton />}>
             <ProjectTable />
           </Suspense>

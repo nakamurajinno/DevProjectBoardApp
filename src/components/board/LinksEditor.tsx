@@ -61,7 +61,7 @@ export function LinksEditor({
   return (
     <div className={`space-y-2 ${draggingKey ? "cursor-grabbing select-none" : ""}`}>
       {links.length > 0 && (
-        <div className="grid grid-cols-[1.5rem_1fr_2fr_2rem] gap-2 text-xs text-gray-600">
+        <div className="grid grid-cols-[1.5rem_1fr_2fr_2rem] gap-2 text-xs text-slate-500">
           <span />
           <span>ラベル</span>
           <span>URL</span>
@@ -78,7 +78,7 @@ export function LinksEditor({
             };
           }}
           className={`grid grid-cols-[1.5rem_1fr_2fr_2rem] items-center gap-2 rounded-lg transition-shadow ${
-            draggingKey === link.key ? "relative z-10 bg-row-active shadow-lg ring-2 ring-primary/30" : ""
+            draggingKey === link.key ? "relative z-10 bg-white shadow-lg ring-1 ring-accent/30" : ""
           }`}
         >
           <button
@@ -95,7 +95,7 @@ export function LinksEditor({
                 moveBy(link.key, e.key === "ArrowUp" ? -1 : 1);
               }
             }}
-            className={`grid h-8 w-6 touch-none place-items-center rounded text-gray-400 hover:bg-gray-100 hover:text-gray-700 ${
+            className={`grid h-8 w-6 touch-none place-items-center rounded text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 ${
               draggingKey ? "cursor-grabbing" : "cursor-grab"
             }`}
             aria-label="ドラッグして並び替え（↑↓キーでも移動）"
@@ -119,7 +119,7 @@ export function LinksEditor({
           <button
             type="button"
             onClick={() => setLinks((ls) => ls.filter((l) => l.key !== link.key))}
-            className="grid size-8 place-items-center rounded-full text-gray-500 hover:bg-red-50 hover:text-red-600"
+            className="grid size-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600"
             aria-label="リンクを削除"
           >
             <Trash2 className="size-4" aria-hidden />
@@ -131,7 +131,7 @@ export function LinksEditor({
         onClick={() =>
           setLinks((ls) => [...ls, { key: crypto.randomUUID(), label: "", url: "" }])
         }
-        className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
+        className="inline-flex items-center gap-1 text-sm font-medium text-accent hover:underline"
       >
         <Plus className="size-4" aria-hidden />
         リンクを追加

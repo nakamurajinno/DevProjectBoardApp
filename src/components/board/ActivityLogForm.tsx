@@ -109,7 +109,7 @@ export function ActivityLogForm({
               required
               className={`${inputClass} w-24`}
             />
-            <span>h</span>
+            <span className="text-slate-500">h</span>
           </div>
         </Field>
       </div>

@@ -42,7 +42,7 @@ async function ProjectDetail({
           <Link
             href={`/projects/${project.id}/edit`}
             scroll={false}
-            className="inline-flex min-w-28 items-center justify-center gap-1.5 rounded-md bg-primary px-4 py-1.5 text-sm font-medium text-white hover:bg-primary-hover"
+            className="inline-flex min-w-28 items-center justify-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-primary-hover"
           >
             <Pencil className="size-4" aria-hidden />
             Edit

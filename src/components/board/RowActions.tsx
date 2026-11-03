@@ -10,7 +10,7 @@ import type { Project } from "@/types";
 import { ActivityLogForm } from "./ActivityLogForm";
 
 const circleButton =
-  "grid size-9 place-items-center rounded-full border-2 border-sky-300 bg-row-active text-gray-800 hover:bg-sky-100";
+  "grid size-8 place-items-center rounded-lg border border-slate-200 bg-white text-slate-500 shadow-sm transition-colors hover:bg-slate-50 hover:text-slate-900";
 
 export function RowActions({ project }: { project: Pick<Project, "id" | "name"> }) {
   const [open, setOpen] = useState(false);
@@ -61,7 +61,7 @@ export function RowActions({ project }: { project: Pick<Project, "id" | "name"> 
           <Link
             role="menuitem"
             href={`/projects/${project.id}/edit`}
-            className={`${menuItemClass} hover:bg-gray-100`}
+            className={`${menuItemClass} hover:bg-slate-100`}
             onClick={close}
           >
             <Pencil className="size-4" aria-hidden />

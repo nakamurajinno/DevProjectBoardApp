@@ -35,7 +35,7 @@ export function ActivityLogList({
 
   if (logs.length === 0) {
     return (
-      <p className="py-8 text-center text-sm text-gray-500">
+      <p className="py-10 text-center text-sm text-slate-500">
         活動ログはまだありません。
       </p>
     );
@@ -45,7 +45,7 @@ export function ActivityLogList({
 
   return (
     <div className="space-y-3">
-      <p className="text-right text-xs text-gray-600">
+      <p className="text-right text-xs tabular-nums text-slate-500">
         合計 {formatHours(total)}h
       </p>
       <ol className="space-y-4 pl-7">
@@ -53,21 +53,21 @@ export function ActivityLogList({
           // タイムライン軸: 各ドットの中心から次のドットの中心 (間隔 16px + 28px 下) まで縦線を引く
           <li
             key={log.id}
-            className="relative before:absolute before:-bottom-11 before:-left-[21px] before:top-7 before:w-0.5 before:bg-tab-border last:before:hidden"
+            className="relative before:absolute before:-bottom-11 before:-left-[21px] before:top-7 before:w-px before:bg-tab-border last:before:hidden"
           >
             {/* ドット: カードのヘッダー行 (上余白 12px + 高さ 32px) の縦中央に合わせる */}
             <span
-              className="absolute -left-7 top-5 size-4 rounded-full border-[3px] border-white bg-primary ring-2 ring-tab-border"
+              className="absolute -left-7 top-5 size-4 rounded-full border-[3px] border-white bg-accent ring-1 ring-slate-200"
               aria-hidden
             />
             <article
               className={`rounded-lg border bg-white p-3 shadow-sm ${
-                editable ? "border-sky-300" : "border-gray-200"
+                editable ? "border-accent/40" : "border-slate-200"
               }`}
             >
-              <header className="flex min-h-8 items-center gap-4 text-sm font-bold">
+              <header className="flex min-h-8 items-center gap-4 text-sm font-semibold text-slate-900">
                 <time dateTime={log.worked_on}>{formatDate(log.worked_on)}</time>
-                <span className="text-primary">{formatHours(log.hours)}h</span>
+                <span className="tabular-nums text-accent">{formatHours(log.hours)}h</span>
                 {editable && (
                   <div className="ml-auto flex items-center gap-1">
                     <button
@@ -75,7 +75,7 @@ export function ActivityLogList({
                       aria-label={`${formatDate(log.worked_on)}の活動ログを編集`}
                       aria-haspopup="dialog"
                       onClick={() => setEditing(log)}
-                      className="grid size-8 place-items-center rounded-full text-gray-700 hover:bg-sky-100"
+                      className="grid size-8 place-items-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900"
                     >
                       <Pencil className="size-4" aria-hidden />
                     </button>
@@ -83,14 +83,14 @@ export function ActivityLogList({
                       type="button"
                       aria-label={`${formatDate(log.worked_on)}の活動ログを削除`}
                       onClick={() => handleDelete(log)}
-                      className="grid size-8 place-items-center rounded-full text-red-600 hover:bg-red-50"
+                      className="grid size-8 place-items-center rounded-lg text-red-500 transition-colors hover:bg-red-50 hover:text-red-600"
                     >
                       <Trash2 className="size-4" aria-hidden />
                     </button>
                   </div>
                 )}
               </header>
-              <p className="mt-2 whitespace-pre-wrap rounded-md bg-row-active px-3 py-2 text-sm">
+              <p className="mt-2 whitespace-pre-wrap rounded-md bg-slate-50 px-3 py-2 text-sm text-slate-700">
                 {log.content}
               </p>
             </article>

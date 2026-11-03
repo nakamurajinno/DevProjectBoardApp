@@ -105,7 +105,7 @@ export function ProjectCreateForm() {
               placeholder="30"
               className={`${inputClass} w-24`}
             />
-            <span>h</span>
+            <span className="text-slate-500">h</span>
           </div>
         </Field>
       </div>
@@ -113,7 +113,7 @@ export function ProjectCreateForm() {
         <Link
           href="/"
           scroll={false}
-          className="inline-flex min-w-28 items-center justify-center rounded-md bg-cancel px-4 py-1.5 text-sm hover:bg-gray-300"
+          className="inline-flex min-w-28 items-center justify-center rounded-lg bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm ring-1 ring-inset ring-slate-200 transition-colors hover:bg-slate-50"
         >
           Cancel
         </Link>

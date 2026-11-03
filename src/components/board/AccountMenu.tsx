@@ -14,7 +14,7 @@ export function AccountMenu() {
       <button
         ref={triggerRef}
         type="button"
-        className="grid size-10 place-items-center rounded-full bg-black text-white hover:bg-gray-800"
+        className="grid size-9 place-items-center rounded-full bg-slate-100 text-slate-600 ring-1 ring-slate-200 transition-colors hover:bg-slate-200 hover:text-slate-900"
         aria-label="アカウントメニュー"
         aria-haspopup="menu"
         aria-expanded={open}
@@ -28,7 +28,7 @@ export function AccountMenu() {
           <button
             role="menuitem"
             type="button"
-            className={`${menuItemClass} hover:bg-gray-100`}
+            className={`${menuItemClass} hover:bg-slate-100`}
             onClick={close}
           >
             <LogOut className="size-4" aria-hidden />

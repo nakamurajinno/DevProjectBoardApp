@@ -1,9 +1,9 @@
 @import "tailwindcss";
 
-/* UI設計書のモックに合わせた配色 (ライトテーマのみ) */
+/* モダン・クリーンな配色 (ライトテーマのみ)。slate を基調に、アクセントは彩度を抑えたインディゴ */
 :root {
-  --background: #ffffff;
-  --foreground: #1f2937;
+  --background: #f8fafc;
+  --foreground: #1e293b;
 }
 
 @theme inline {
@@ -14,19 +14,14 @@
     "Noto Sans JP", Meiryo, sans-serif;
   --font-mono: var(--font-geist-mono);
 
-  --color-header: #84cbeb;
-  --color-logo: #5bc4f1;
-  --color-primary: #215f9a;
-  --color-primary-hover: #1a4d7e;
-  --color-row-active: #ebf3fb;
-  --color-panel-title: #dceaf7;
-  --color-tab-active: #c5e4f3;
-  --color-tab-border: #b9dff0;
-  --color-readonly: #f2f2f2;
-  --color-cancel: #d9d9d9;
-  --color-status-todo: #a6a6a6;
-  --color-status-doing: #a9cbec;
-  --color-status-done: #a9d18e;
+  /* ボタン等の主要アクション */
+  --color-primary: #0f172a;
+  --color-primary-hover: #334155;
+  /* リンク・進捗バー・フォーカスリングなどのアクセント */
+  --color-accent: #5b6ee1;
+  --color-row-active: #f1f5f9;
+  --color-tab-border: #e2e8f0;
+  --color-readonly: #f8fafc;
 }
 
 body {

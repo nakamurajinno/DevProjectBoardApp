@@ -33,7 +33,7 @@ export function ProjectTableView({
       <tbody>
         {projects.length === 0 && (
           <tr>
-            <td colSpan={7} className="py-12 text-center text-sm text-gray-500">
+            <td colSpan={7} className="py-16 text-center text-sm text-slate-500">
               プロジェクトがありません。「+ Add Project」から登録してください。
             </td>
           </tr>
@@ -42,15 +42,15 @@ export function ProjectTableView({
           <tr
             key={project.id}
             onClick={() => router.push(`/projects/${project.id}`)}
-            className={`group cursor-pointer border-b border-gray-300 text-sm transition-colors hover:bg-row-active/60 ${
+            className={`group cursor-pointer border-b border-slate-100 text-sm text-slate-700 transition-colors last:border-0 hover:bg-row-active/60 ${
               params.id === project.id ? "bg-row-active" : ""
             }`}
           >
-            <td className="px-3 py-4 text-center">{index + 1}</td>
-            <td className="px-3 py-4 text-center">
+            <td className="px-4 py-4 text-center text-xs tabular-nums text-slate-400">{index + 1}</td>
+            <td className="px-4 py-4 text-center">
               <StatusBadge status={project.status} />
             </td>
-            <td className="truncate px-3 py-4">
+            <td className="truncate px-4 py-4 font-medium text-slate-900">
               <Link
                 href={`/projects/${project.id}`}
                 className="hover:underline"
@@ -59,21 +59,21 @@ export function ProjectTableView({
                 {project.name}
               </Link>
             </td>
-            <td className="px-3 py-4">
+            <td className="px-4 py-4 text-slate-500">
               <Tooltip content={project.summary} focusable className="block truncate">
                 {project.summary}
               </Tooltip>
             </td>
-            <td className="px-3 py-4 text-center">
+            <td className="px-4 py-4 text-center text-slate-500">
               {categoryLabel(project.category)}
             </td>
-            <td className="px-3 py-3">
+            <td className="px-4 py-3">
               <HoursProgress
                 actual={project.actual_hours}
                 planned={project.planned_hours}
               />
             </td>
-            <td className="px-3 py-4" onClick={(e) => e.stopPropagation()}>
+            <td className="px-4 py-4" onClick={(e) => e.stopPropagation()}>
               <RowActions project={project} />
             </td>
           </tr>

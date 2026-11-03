@@ -13,9 +13,9 @@ export function ProjectTableSkeleton() {
       <ProjectTableHead />
       <tbody>
         {[0, 1].map((i) => (
-          <tr key={i} className="border-b border-gray-300">
-            <td colSpan={TABLE_HEADERS.length} className="px-3 py-5">
-              <div className="h-5 animate-pulse rounded bg-gray-100" />
+          <tr key={i} className="border-b border-slate-100 last:border-0">
+            <td colSpan={TABLE_HEADERS.length} className="px-4 py-5">
+              <div className="h-5 animate-pulse rounded bg-slate-100" />
             </td>
           </tr>
         ))}

@@ -114,7 +114,7 @@ function Floating({
 }
 
 const tooltipClass =
-  "pointer-events-none max-w-sm whitespace-pre-wrap break-words rounded-md bg-gray-900 px-2.5 py-1.5 text-xs leading-relaxed text-white shadow-lg";
+  "pointer-events-none max-w-sm whitespace-pre-wrap break-words rounded-md bg-slate-900 px-2.5 py-1.5 text-xs leading-relaxed text-white shadow-lg";
 
 // ホバー / フォーカスでヘルプテキストを表示する。
 // focusable: 子要素自体がフォーカスできない場合 (テキスト等) に true。
@@ -155,9 +155,9 @@ export function Tooltip({
 }
 
 export const menuClass =
-  "w-32 overflow-hidden rounded-md border border-gray-200 bg-white py-1 text-sm shadow-lg";
+  "w-32 overflow-hidden rounded-lg border border-slate-200 bg-white p-1 text-sm text-slate-700 shadow-lg";
 export const menuItemClass =
-  "flex w-full items-center gap-2 px-3 py-2";
+  "flex w-full items-center gap-2 rounded-md px-2.5 py-2 transition-colors";
 
 // トリガーボタンに紐づくドロップダウンメニュー。open 中のみマウントする。
 export function Menu({

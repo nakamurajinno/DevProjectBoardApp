@@ -148,7 +148,7 @@ export function ProjectEditPanel({
       </Field>
       <Field label="工数" htmlFor="planned_hours" error={errors.planned_hours}>
         <div className="flex items-center gap-2 text-sm">
-          <span className="whitespace-nowrap" title="実績工数（活動ログの合計）">
+          <span className="whitespace-nowrap text-slate-500" title="実績工数（活動ログの合計）">
             {formatHours(project.actual_hours)} /
           </span>
           <input
@@ -161,7 +161,7 @@ export function ProjectEditPanel({
             aria-invalid={!!errors.planned_hours}
             className={`${inputClass} w-24`}
           />
-          <span>h</span>
+          <span className="text-slate-500">h</span>
         </div>
       </Field>
       <Field label="技術構成" htmlFor="tech_stack">
@@ -179,7 +179,7 @@ export function ProjectEditPanel({
       <Field label="スコープ">
         <div className="space-y-2 text-sm">
           <label className="grid grid-cols-[6.5rem_1fr] gap-2">
-            <span className="pt-2">Step1（MVP）:</span>
+            <span className="pt-2 text-slate-500">Step1（MVP）:</span>
             <textarea
               value={values.scope_step1}
               onChange={set("scope_step1")}
@@ -188,7 +188,7 @@ export function ProjectEditPanel({
             />
           </label>
           <label className="grid grid-cols-[6.5rem_1fr] gap-2">
-            <span className="pt-2">Step2（最終）:</span>
+            <span className="pt-2 text-slate-500">Step2（最終）:</span>
             <textarea
               value={values.scope_step2}
               onChange={set("scope_step2")}
@@ -226,7 +226,7 @@ export function ProjectEditPanel({
           <Link
             href={`/projects/${project.id}`}
             onClick={reset}
-            className="inline-flex min-w-28 items-center justify-center rounded-md bg-cancel px-4 py-1.5 text-sm hover:bg-gray-300"
+            className="inline-flex min-w-28 items-center justify-center rounded-lg bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm ring-1 ring-inset ring-slate-200 transition-colors hover:bg-slate-50"
           >
             Cancel
           </Link>

@@ -68,7 +68,7 @@ export function DetailTabs({
     <>
       <div
         role="tablist"
-        className="flex shrink-0 gap-2 border-b-2 border-tab-border px-2 pt-3"
+        className="flex shrink-0 gap-1 border-b border-slate-200 px-5 pt-4"
       >
         {TABS.map((tab) => (
           <button
@@ -79,10 +79,10 @@ export function DetailTabs({
             aria-selected={active === tab.key}
             aria-controls={`panel-${tab.key}`}
             onClick={() => selectTab(projectId, tab.key)}
-            className={`w-32 py-2.5 text-sm ${
+            className={`-mb-px w-32 border-b-2 py-2.5 text-sm transition-colors ${
               active === tab.key
-                ? "bg-tab-active"
-                : "border-2 border-b-0 border-tab-border bg-white hover:bg-sky-50"
+                ? "border-slate-900 font-medium text-slate-900"
+                : "border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-800"
             }`}
           >
             {tab.label}
@@ -97,14 +97,14 @@ export function DetailTabs({
             role="tabpanel"
             aria-labelledby={`tab-${tab.key}`}
             hidden={active !== tab.key}
-            className="px-5 py-4"
+            className="px-5 py-5"
           >
             {tab.key === "info" ? info : logs}
           </div>
         ))}
       </div>
       {footer && (
-        <div className="shrink-0 border-t border-gray-200 px-5 py-3">{footer}</div>
+        <div className="shrink-0 border-t border-slate-200 bg-slate-50/60 px-5 py-3">{footer}</div>
       )}
     </>
   );
