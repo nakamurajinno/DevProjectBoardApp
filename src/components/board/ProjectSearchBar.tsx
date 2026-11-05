@@ -37,7 +37,7 @@ export function ProjectSearchBar({
   return (
     <div className="mb-4 space-y-2" role="search">
       <div className="flex flex-col gap-2 sm:flex-row">
-        <div className="relative flex-1">
+        <div className="relative min-w-0 flex-1">
           <Search
             className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400"
             aria-hidden
@@ -60,7 +60,7 @@ export function ProjectSearchBar({
               set({ status: isProjectStatus(status) ? status : "all" });
             }}
             aria-label="ステータスで絞り込み"
-            className="sm:w-36"
+            className="w-full min-w-0 sm:w-36"
           />
           <Select
             options={[
@@ -71,12 +71,12 @@ export function ProjectSearchBar({
             value={filter.assignee}
             onChange={(e) => set({ assignee: e.target.value })}
             aria-label="担当者で絞り込み"
-            className="sm:w-44"
+            className="w-full min-w-0 sm:w-44"
           />
         </div>
       </div>
       <div className="flex min-h-7 items-center justify-between gap-3 text-xs text-slate-500">
-        <p aria-live="polite">
+        <p aria-live="polite" className="min-w-0">
           全 <span className="tabular-nums">{total}</span> 件中{" "}
           <span className="font-medium tabular-nums text-slate-700">{shown}</span> 件を表示
         </p>
@@ -84,7 +84,7 @@ export function ProjectSearchBar({
           <button
             type="button"
             onClick={() => onChange(EMPTY_FILTER)}
-            className="inline-flex items-center gap-1 rounded-md px-2 py-1 font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
+            className="inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
           >
             <X className="size-3.5" aria-hidden />
             検索条件をクリア

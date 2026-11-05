@@ -22,7 +22,7 @@ export async function ProjectTable() {
 export function ProjectTableSkeleton() {
   return (
     <>
-      <div className="grid gap-3 sm:grid-cols-2 lg:hidden" aria-hidden>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:hidden" aria-hidden>
         {[0, 1].map((i) => (
           <div key={i} className="h-36 animate-pulse rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
             <div className="h-4 w-24 rounded bg-slate-100" />

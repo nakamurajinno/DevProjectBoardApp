@@ -8,7 +8,8 @@ import { HoursProgress } from "./HoursProgress";
 import { RowActions } from "./RowActions";
 import { StatusBadge } from "./StatusBadge";
 
-// lg 未満 (スマートフォン・タブレット) 向けのカード一覧
+// lg 未満 (スマートフォン・タブレット) 向けのカード一覧。
+// grid-cols-1 (= minmax(0,1fr)) と li の min-w-0 で、長いアプリ名 (truncate) がカード幅を押し広げないようにする
 export function ProjectCardList({
   rows,
   selectedId,
@@ -23,15 +24,15 @@ export function ProjectCardList({
   onOpen: (id: string) => void;
 }) {
   return (
-    <div className="lg:hidden">
+    <div className="w-full min-w-0 lg:hidden">
       {rows.length === 0 ? (
         <p className="rounded-xl border border-slate-200 bg-white px-4 py-12 text-center text-sm text-slate-500 shadow-sm">
           {emptyMessage}
         </p>
       ) : (
-        <ul className="grid gap-3 sm:grid-cols-2">
+        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {rows.map(({ project, no }) => (
-            <li key={project.id}>
+            <li key={project.id} className="min-w-0">
               <article
                 onClick={() => onOpen(project.id)}
                 className={`flex h-full cursor-pointer flex-col rounded-xl border bg-white p-4 text-sm text-slate-700 shadow-sm transition-colors active:bg-row-active/60 ${
@@ -61,7 +62,7 @@ export function ProjectCardList({
                   )}
                 </div>
                 {project.summary && (
-                  <p className="mt-2 line-clamp-2 break-words text-slate-500">{project.summary}</p>
+                  <p className="mt-2 line-clamp-2 wrap-anywhere text-slate-500">{project.summary}</p>
                 )}
                 <div className="mt-auto flex items-end justify-between gap-3 pt-3">
                   <span className="min-w-0 truncate text-xs text-slate-500">

@@ -13,7 +13,7 @@ export default function BoardLayout({ children }: LayoutProps<"/">) {
   return (
     <>
       <Header />
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-5 sm:px-6 sm:py-8">
+      <main className="mx-auto w-full min-w-0 max-w-6xl flex-1 px-4 py-5 sm:px-6 sm:py-8">
         <div className="mb-4 flex min-h-10 justify-end sm:mb-5">
           {/* 権限によって表示が変わるため Suspense で囲む */}
           <Suspense>
